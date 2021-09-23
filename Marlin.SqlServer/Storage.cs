@@ -11,140 +11,6 @@ namespace Marlin.SqlServer
 {
     public class Storage : IStorage
     {
-        public void AssemblyAdd(string name)
-        {
-            using (SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
-            {
-                connection.Open();
-
-                using (SqlCommand command = new SqlCommand("Marlin_AssemblyAdd", connection))
-                {
-                    command.CommandType = System.Data.CommandType.StoredProcedure;
-
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@name", Value = name.Trim() });
-
-                    command.ExecuteNonQuery();
-                }
-            }
-        }
-
-        public bool AssemblyCanAccess(User user, string name)
-        {
-            using (SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
-            {
-                connection.Open();
-
-                using (SqlCommand command = new SqlCommand("Marlin_AssemblyCanAccess", connection))
-                {
-                    command.CommandType = System.Data.CommandType.StoredProcedure;
-
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@user", Value = user.Id });
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@name", Value = name.Trim() });
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        return reader.HasRows;
-                    }
-                }
-            }
-        }
-
-        public void AssemblyDelete(Guid assemblyId)
-        {
-           using(SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
-            {
-                connection.Open();
-
-                using(SqlCommand command = new SqlCommand("Marlin_AssemblyDelete", connection))
-                {
-                    command.CommandType = System.Data.CommandType.StoredProcedure;
-
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@assembly", Value = assemblyId });
-
-                    command.ExecuteNonQuery();
-                }
-            }
-        }
-
-        public Assembly AssemblyGet(string name)
-        {
-            using (SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
-            {
-                connection.Open();
-
-                using (SqlCommand command = new SqlCommand("Marlin_AssemblyGet", connection))
-                {
-                    command.CommandType = System.Data.CommandType.StoredProcedure;
-
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@name", Value = name.Trim() });
-
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        Assembly assembly = null;
-
-                        if (reader.Read())
-                        {
-                            assembly = new Assembly();
-
-                            assembly.Id = reader.Get<Guid>("Id");
-                            assembly.Name = reader.Get<string>("Name");
-                        }
-
-                        return assembly;
-                    }
-                }
-            }
-        }
-
-        public List<Assembly> AssemblyList()
-        {
-            using (SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
-            {
-                connection.Open();
-
-                using (SqlCommand command = new SqlCommand("Marlin_AssemblyGet", connection))
-                {
-                    command.CommandType = System.Data.CommandType.StoredProcedure;
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        List<Assembly> assemblies = new List<Assembly>();
-
-                        if (reader.Read())
-                        {
-                            Assembly assembly = new Assembly();
-
-                            assembly.Id = reader.Get<Guid>("Id");
-                            assembly.Name = reader.Get<string>("Name");
-
-                            assemblies.Add(assembly);
-                        }
-
-                        return assemblies;
-                    }
-                }
-            }
-        }
-
-        public void AssemblyUpdate(Assembly assembly)
-        {
-            using (SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
-            {
-                connection.Open();
-
-                using (SqlCommand command = new SqlCommand("Marlin_AssemblyUpdate", connection))
-                {
-                    command.CommandType = System.Data.CommandType.StoredProcedure;
-
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@assembly", Value = assembly.Id });
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@name", Value = assembly.Name.Trim() });
-
-                    command.ExecuteNonQuery();
-                }
-            }
-        }
-
         public void CredentialAdd(User user, string value)
         {
             using (SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
@@ -335,6 +201,28 @@ namespace Marlin.SqlServer
             }
         }
 
+        public bool ResourceCanAccess(Guid userId, string url, string method)
+        {
+            using (SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
+            {
+                connection.Open();
+
+                using (SqlCommand command = new SqlCommand("ResourceCanAccess", connection))
+                {
+                    command.CommandType = System.Data.CommandType.StoredProcedure;
+
+                    command.Parameters.Add(new SqlParameter() { ParameterName = "@user", Value = userId });
+                    command.Parameters.Add(new SqlParameter() { ParameterName = "@url", Value = url });
+                    command.Parameters.Add(new SqlParameter() { ParameterName = "@method", Value = method });
+
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        return reader.HasRows;
+                    }
+                }
+            }
+        }
+
         public void ResourceDelete(Guid resourceId)
         {
             using (SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
@@ -404,7 +292,7 @@ namespace Marlin.SqlServer
                     command.Parameters.Add(new SqlParameter() { ParameterName = "@url", Value = url.Trim() });
                     command.Parameters.Add(new SqlParameter() { ParameterName = "@method", Value = method.Trim() });
 
-                    using(SqlDataReader reader = command.ExecuteReader())
+                    using (SqlDataReader reader = command.ExecuteReader())
                     {
                         if (reader.Read())
                         {
@@ -502,24 +390,6 @@ namespace Marlin.SqlServer
 
         }
 
-        public void RoleAddAssembly(Guid roleId, Guid assemblyId)
-        {
-            using (SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
-            {
-                connection.Open();
-
-                using (SqlCommand command = new SqlCommand("Marlin_RoleAddAssembly", connection))
-                {
-                    command.CommandType = System.Data.CommandType.StoredProcedure;
-
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@role", Value = roleId });
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@assembly", Value = assemblyId });
-
-                    command.ExecuteNonQuery();
-                }
-            }
-        }
-
         public void RoleAddResource(Guid roleId, Guid resourceId)
         {
             using (SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
@@ -580,7 +450,6 @@ namespace Marlin.SqlServer
                                 r.Id = reader.Get<Guid>("RoleId");
                                 r.Name = reader.Get<string>("Role");
                                 r.Resources = new List<Resource>();
-                                r.Assemblies = new List<Assembly>();
                             }
 
                             Guid resourceId = reader.Get<Guid>("ResourceId");
@@ -600,16 +469,6 @@ namespace Marlin.SqlServer
                                 resource.Url = reader.Get<string>("Url");
 
                                 r.Resources.Add(resource);
-                            }
-
-                            if (assemblyId != Guid.Empty && !r.Assemblies.Any(x => x.Id == assemblyId))
-                            {
-                                Assembly assembly = new Assembly();
-
-                                assembly.Id = reader.Get<Guid>("AssemblyId");
-                                assembly.Name = reader.Get<string>("Assembly");
-
-                                r.Assemblies.Add(assembly);
                             }
                         }
                     }
@@ -651,7 +510,6 @@ namespace Marlin.SqlServer
                                 role.Id = roleId;
                                 role.Name = reader.Get<string>("Role");
                                 role.Resources = new List<Resource>();
-                                role.Assemblies = new List<Assembly>();
 
                                 roles.Add(role);
                             }
@@ -674,16 +532,6 @@ namespace Marlin.SqlServer
 
                                 role.Resources.Add(resource);
                             }
-
-                            if (assemblyId != Guid.Empty && !role.Assemblies.Any(x => x.Id == assemblyId))
-                            {
-                                Assembly assembly = new Assembly();
-
-                                assembly.Id = reader.Get<Guid>("AssemblyId");
-                                assembly.Name = reader.Get<string>("Assembly");
-
-                                role.Assemblies.Add(assembly);
-                            }
                         }
                     }
                 }
@@ -701,24 +549,6 @@ namespace Marlin.SqlServer
             }
 
             return roles;
-        }
-
-        public void RoleRemoveAssembly(Guid roleId, Guid assemblyId)
-        {
-            using (SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
-            {
-                connection.Open();
-
-                using (SqlCommand command = new SqlCommand("Marlin_RoleRemoveAssembly", connection))
-                {
-                    command.CommandType = System.Data.CommandType.StoredProcedure;
-
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@role", Value = roleId });
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@assembly", Value = assemblyId });
-
-                    command.ExecuteNonQuery();
-                }
-            }
         }
 
         public void RoleRemoveResource(Guid roleId, Guid resourceId)
@@ -981,7 +811,9 @@ namespace Marlin.SqlServer
 
                                 dbUser.Id = reader.Get<Guid>("Id");
                                 dbUser.Username = reader.Get<string>("Username");
+                                dbUser.Mobile = reader.Get<long>("Mobile");
                                 dbUser.Created = Helper.GetUnixTimestamp(reader.Get<DateTime>("Created"));
+                                dbUser.Disabled = Helper.GetUnixTimestamp(reader.Get<DateTime>("Disabled"));
                                 dbUser.Properties = new Dictionary<string, string>();
                                 dbUser.Roles = new List<Role>();
                             }
@@ -1004,38 +836,8 @@ namespace Marlin.SqlServer
                                 role.Name = roleName;
 
                                 role.Resources = new List<Resource>();
-                                role.Assemblies = new List<Assembly>();
 
                                 dbUser.Roles.Add(role);
-                            }
-
-                            string url = reader.Get<string>("Url");
-                            string method = reader.Get<string>("Method");
-
-                            if (!string.IsNullOrEmpty(url) && !string.IsNullOrEmpty(method) && !role.Resources.Any(x => x.Url == url && x.Method == method))
-                            {
-                                Resource resource = new Resource();
-
-                                resource.IsPublic = reader.Get<bool>("IsPublic");
-                                resource.Label = reader.Get<string>("Label");
-                                resource.Method = method;
-                                resource.Order = reader.Get<int>("Order");
-                                resource.ParentId = reader.Get<Guid>("ParentId");
-                                resource.Title = reader.Get<string>("Title");
-                                resource.Url = reader.Get<string>("Url");
-
-                                role.Resources.Add(resource);
-                            }
-
-                            string assemblyName = reader.Get<string>("Assembly");
-
-                            if (!string.IsNullOrEmpty(assemblyName) && !role.Assemblies.Any(x => x.Name == assemblyName))
-                            {
-                                Assembly assembly = new Assembly();
-
-                                assembly.Name = assemblyName;
-
-                                role.Assemblies.Add(assembly);
                             }
                         }
                     }
@@ -1043,49 +845,6 @@ namespace Marlin.SqlServer
             }
 
             return dbUser;
-        }
-
-        public User UserGetByResetToken(Guid resetToken)
-        {
-            User user = null;
-
-            using (SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
-            {
-                connection.Open();
-
-                using (SqlCommand command = new SqlCommand("Marlin_UserGetByResetToken", connection))
-                {
-                    command.CommandType = System.Data.CommandType.StoredProcedure;
-
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@resetToken", Value = resetToken });
-
-                    using (SqlDataReader reader = command.ExecuteReader())
-                    {
-                        while (reader.Read())
-                        {
-                            if (user == null)
-                            {
-                                user = new User();
-
-                                user.Id = reader.Get<Guid>("Id");
-                                user.Username = reader.Get<string>("Username");
-                                user.Created = Helper.GetUnixTimestamp(reader.Get<DateTime>("Created"));
-                                user.Disabled = Helper.GetUnixTimestamp(reader.Get<DateTime>("Deleted"));
-                                user.Properties = new Dictionary<string, string>();
-                            }
-
-                            string key = reader.Get<string>("Key");
-
-                            if (!string.IsNullOrEmpty(key) && !user.Properties.ContainsKey(key))
-                            {
-                                user.Properties.Add(key, reader.Get<string>("Value"));
-                            }
-                        }
-                    }
-                }
-            }
-
-            return user;
         }
 
         public void UserPropertyAdd(User user, string key, string value)
@@ -1140,7 +899,7 @@ namespace Marlin.SqlServer
                     command.Parameters.Add(new SqlParameter() { ParameterName = "@user", Value = user.Id });
                     command.Parameters.Add(new SqlParameter() { ParameterName = "@key", Value = key.Trim() });
 
-                    using(SqlDataReader reader = command.ExecuteReader())
+                    using (SqlDataReader reader = command.ExecuteReader())
                     {
                         if (reader.Read())
                         {
@@ -1170,6 +929,52 @@ namespace Marlin.SqlServer
                     command.ExecuteNonQuery();
                 }
             }
+        }
+
+        public List<Resource> UserResources(string user)
+        {
+            List<Resource> resources = new List<Resource>();
+
+            using(SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
+            {
+                connection.Open();
+
+                using(SqlCommand command = new SqlCommand("Marlin_UserResources", connection))
+                {
+                    command.CommandType = System.Data.CommandType.StoredProcedure;
+
+                    command.Parameters.Add(new SqlParameter() { ParameterName = "@user", Value = user.Trim() });
+
+                    using(SqlDataReader reader = command.ExecuteReader())
+                    {
+                        while (reader.Read())
+                        {
+                            Guid resourceId = reader.Get<Guid>("Id");
+
+                            Resource resource = resource = new Resource();
+
+                            resource.Id = reader.Get<Guid>("Id");
+                            resource.IsPublic = reader.Get<bool>("IsPublic");
+                            resource.Label = reader.Get<string>("Label");
+                            resource.Method = reader.Get<string>("Method");
+                            resource.Order = reader.Get<int>("Order");
+                            resource.ParentId = reader.Get<Guid>("ParentId");
+                            resource.Title = reader.Get<string>("Title");
+                            resource.Url = reader.Get<string>("Url");
+                            resource.Children = new List<Resource>();
+
+                            resources.Add(resource);
+                        }
+                    }
+                }
+            }
+
+            if(resources.Count > 0)
+            {
+                resources = resources.BuildResourceTree();
+            }
+
+            return resources;
         }
 
         public List<User> UserSearch(string query, int page, int limit)
@@ -1202,7 +1007,9 @@ namespace Marlin.SqlServer
 
                                 user.Id = reader.Get<Guid>("Id");
                                 user.Username = reader.Get<string>("Username");
+                                user.Mobile = reader.Get<long>("Mobile");
                                 user.Created = Helper.GetUnixTimestamp(reader.Get<DateTime>("Created"));
+                                user.Disabled = Helper.GetUnixTimestamp(reader.Get<DateTime>("Disabled"));
                                 user.Properties = new Dictionary<string, string>();
 
                                 users.Add(user);
@@ -1220,24 +1027,6 @@ namespace Marlin.SqlServer
             }
 
             return users;
-        }
-
-        public void UserSetResetToken(User user, Guid resetToken)
-        {
-            using (SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
-            {
-                connection.Open();
-
-                using (SqlCommand command = new SqlCommand("Marlin_UserSetResetToken", connection))
-                {
-                    command.CommandType = System.Data.CommandType.StoredProcedure;
-
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@user", Value = user.Id });
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@resetToken", Value = resetToken });
-
-                    command.ExecuteNonQuery();
-                }
-            }
         }
 
         public void UserUnauthorize(Guid userId, Guid roleId)
@@ -1258,22 +1047,38 @@ namespace Marlin.SqlServer
             }
         }
 
-        public void UserUpdate(Guid userId, string username)
+        public string UserGetSecret(string user)
         {
+            throw new NotImplementedException();
+        }
+
+        public Credential CredentialGet(User user)
+        {
+            Credential credential = null;
+
             using (SqlConnection connection = new SqlConnection(Settings.Current.StorageSource))
             {
                 connection.Open();
 
-                using (SqlCommand command = new SqlCommand("Marlin_UserUpdate", connection))
+                using (SqlCommand command = new SqlCommand("Marlin_UserGetSecret", connection))
                 {
                     command.CommandType = System.Data.CommandType.StoredProcedure;
 
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@user", Value = userId });
-                    command.Parameters.Add(new SqlParameter() { ParameterName = "@username", Value = username.Trim() });
+                    command.Parameters.Add(new SqlParameter() { ParameterName = @"user", Value = user.Id });
 
-                    command.ExecuteNonQuery();
+                    using (SqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            credential = new Credential();
+                            credential.Value = reader.Get<string>("Value");
+                        }
+                    }
+
                 }
             }
+
+            return credential;
         }
     }
 }

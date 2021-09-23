@@ -5,6 +5,10 @@ namespace Marlin.Core.Interfaces
 {
     public interface IAuthorizationHandler
     {
-        public LoginResponse ThirdPartLogin(User user);
+        public User Login(string username, string password);
+
+        public string GenerateCredential(User user);
+
+        public User Login(string username);
     }
 }

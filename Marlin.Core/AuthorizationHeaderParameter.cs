@@ -15,7 +15,7 @@ namespace Marlin.Core
 
             operation.Parameters.Add(new OpenApiParameter
             {
-                Name = "Authorization",
+                Name = "MarlinApiBearer",
                 In = ParameterLocation.Header,
                 Required = false,
                 Schema = new OpenApiSchema

@@ -2,7 +2,7 @@
 {
     public class Credential : BaseEntity
     {
-        public string Code { get; set; }
+        public string Value { get; set; }
         public long Created { get; set; }
         public long Deleted { get; set; }
     }

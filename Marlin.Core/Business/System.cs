@@ -73,14 +73,10 @@ namespace Marlin.Core.Business
                     _storage.UserPropertyAdd(user, property.Key, property.Value);
 
                     user.Properties.Add(property.Key, property.Value);
+
+                    Business.User.UserPropertySet(user, property.Key, property.Value);
                 }
             }
-
-            Guid resetToken = Guid.NewGuid();
-
-            _storage.UserSetResetToken(user, resetToken);
-
-            messageHandler.Send(user, resetToken.ToString());
         }
     }
 }

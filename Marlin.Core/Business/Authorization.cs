@@ -1,14 +1,10 @@
 ﻿using Marlin.Core.Common;
 using Marlin.Core.Entities;
-using Marlin.Core.Exceptions;
 using Marlin.Core.Interfaces;
 using Marlin.Core.Models;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security;
-using System.Text;
-using System.Text.RegularExpressions;
 
 namespace Marlin.Core.Business
 {
@@ -17,32 +13,6 @@ namespace Marlin.Core.Business
         private static NLog.Logger logger = NLog.Web.NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
 
         private static readonly IStorage _storage = StorageManager.Storage;
-
-        /// <summary>
-        /// Checks if a user can access to an assembly 
-        /// </summary>
-        /// <param name="user">User to chec</param>
-        /// <param name="name">Assembly name</param>
-        /// <returns></returns>
-        public static bool CanAccessAssembly(Entities.User user, string name)
-        {
-            if (user == null)
-            {
-                throw new ArgumentNullException(nameof(user));
-            }
-
-            if (user.Id == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(user.Id));
-            }
-
-            if (string.IsNullOrEmpty(name))
-            {
-                throw new ArgumentNullException(nameof(name));
-            }
-
-            return _storage.AssemblyCanAccess(user, name);
-        }
 
         /// <summary>
         /// Checks if a resource is public
@@ -88,11 +58,11 @@ namespace Marlin.Core.Business
                 throw new ArgumentNullException(nameof(method));
             }
 
-            return Context.Current.User.Roles.Any(x => x.Resources.Any(y => y.Url.Equals(url.ToLower()) && y.Method.Equals(method.ToUpper())));
+            return _storage.ResourceCanAccess(Context.Current.User.Id, url.ToLower(), method.ToUpper());
         }
 
         /// <summary>
-        /// Login procedure (it contains the third part login interface implementations, if active on your configuration)
+        /// Login procedure (it contains the current implementation of IAuthorizationHandler)
         /// </summary>
         /// <param name="username"></param>
         /// <param name="password"></param>
@@ -104,180 +74,125 @@ namespace Marlin.Core.Business
                 throw new ArgumentNullException(nameof(username));
             }
 
+            if (string.IsNullOrEmpty(password))
+            {
+                throw new ArgumentNullException(nameof(password));
+            }
+
+            IAuthorizationHandler authorizationHandler = Helper.CreateInstance<IAuthorizationHandler>(Settings.Current.AuthorizationHandlerImplementationType);
+
+            password = Helper.GetSha256(password);
+
             LoginResponse response = new LoginResponse();
 
-            response.User = _storage.UserGet(username);
+            response.User = authorizationHandler.Login(username, password);
 
             if(response.User == null)
             {
                 logger.Warn($"Login failed for username {username}");
 
-                throw new SecurityException("Unauthorized");
+                throw new SecurityException("Login failed");
             }
 
             if(response.User.Disabled > 0)
             {
                 logger.Warn($"Disabled user {response.User.Id} tried login");
 
-                throw new SecurityException("Unauthorized");
+                throw new SecurityException("Login failed");
             }
 
-            bool thirdPartLogin = Settings.Get("ThirdPartLogin", false);
-
-            if (thirdPartLogin)
-            {
-                IAuthorizationHandler authorizationHandler = Helper.CreateInstance<IAuthorizationHandler>(Settings.Current.AuthorizationHandlerImplementationType);
-
-                if(authorizationHandler == null)
-                {
-                    throw new ApplicationException("No ThirdPartLoginType setting configured. Cannot do the login.");
-                }
-
-                return authorizationHandler.ThirdPartLogin(response.User);
-            }
-
-            if (string.IsNullOrEmpty(password))
-            {
-                throw new ArgumentNullException(nameof(password));
-            }
-
-            password = Helper.GetSha256(password);
-
-            Credential credential = _storage.CredentialGet(response.User, password);
-
-            if(credential == null)
-            {
-                logger.Warn($"Login failed for username {username} & password {password}");
-
-                throw new SecurityException("Unauthorized");
-            }
-
-            if(credential.Deleted > 0)
-            {
-                logger.Warn($"Login failed for username {username} & password {password}. Old password used.");
-
-                throw new SecurityException("Unauthorized");
-            }
-
-            int passwordExpirationDays = Settings.Get<int>("PasswordExpirationDays", 30);
-
-            if(Helper.GetFromUnixTimestamp(credential.Created).AddDays(passwordExpirationDays) > DateTime.Now)
-            {
-                throw new PasswordExpiredException("Password expired");
-            }
-
-            response.Bearer = Helper.GetBearer(Settings.Get<string>("ServerSecret"), response.User);
+            response.Bearer = Helper.GetBearer(password, response.User);
 
             return response;
         }
 
         /// <summary>
-        /// Ask reset password for specified user
+        /// Check existance of user and send credentials with the implementation of IAuthorizationHandler and IMessageHandler
         /// </summary>
-        /// <param name="username"></param>
-        internal static void ResetPassword(string username)
+        /// <param name="user"></param>
+        internal static void Login(string username)
         {
-            if (string.IsNullOrEmpty(username))
+            if(string.IsNullOrEmpty(username))
             {
                 throw new ArgumentNullException(nameof(username));
             }
 
+            IAuthorizationHandler authorizationHandler = Helper.CreateInstance<IAuthorizationHandler>(Settings.Current.AuthorizationHandlerImplementationType);
+
             IMessageHandler messageHandler = Helper.CreateInstance<IMessageHandler>(Settings.Current.MessageHandlerImplementationType);
 
-            if(messageHandler == null)
+            Entities.User user = authorizationHandler.Login(username);
+
+            if (user == null)
             {
-                throw new ApplicationException("No setting MessageHandlerType configured. Provide it to send correctly messages to users.");
+                logger.Warn($"Login failed for username {username}");
+
+                throw new SecurityException("Login failed");
             }
 
-            Entities.User user = _storage.UserGet(username);
+            string credential = authorizationHandler.GenerateCredential(user);
 
-            if(user == null)
-            {
-                logger.Warn($"Tried reset password on username {username}");
-                return;
-            }
+            string hashedCredential = Helper.GetSha256(credential);
 
-            if(user.Disabled > 0)
-            {
-                logger.Warn($"Tried reset password on disabled user {user.Id}");
-                return;
-            }
+            _storage.CredentialAdd(user, hashedCredential);
 
-            Guid resetToken = Guid.NewGuid();
-
-            _storage.UserSetResetToken(user, resetToken);
-
-            messageHandler.Send(user, resetToken.ToString());
+            messageHandler.Send(user, credential);
         }
 
         /// <summary>
-        /// Resets the password for the user specified by token
+        /// Get user resources
         /// </summary>
-        /// <param name="resetToken"></param>
-        /// <param name="password"></param>
-        /// <param name="repeat"></param>
-        internal static void ResetPassword(Guid resetToken, string password, string repeat)
+        /// <param name="user"></param>
+        /// <returns></returns>
+        internal static List<Resource> UserResources(Entities.User user)
         {
-            if(resetToken == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(resetToken));
-            }
-
-            if (string.IsNullOrEmpty(password))
-            {
-                throw new ArgumentNullException(nameof(password));
-            }
-
-            if (string.IsNullOrEmpty(repeat))
-            {
-                throw new ArgumentNullException(nameof(repeat));
-            }
-
-            if (password.Equals(repeat))
-            {
-                throw new ArgumentException("password and repeat are not the same.");
-            }
-
-            string passwordRegex = Settings.Get("PasswordRegex", @"^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$");
-
-            if(!Regex.IsMatch(password, passwordRegex))
-            {
-                throw new ArgumentException("password doesn't meet complexity requested.");
-            }
-
-            Entities.User user = _storage.UserGetByResetToken(resetToken);
-
             if(user == null)
             {
-                logger.Warn($"User not found with resetToken {resetToken}");
-
-                throw new SecurityException("Invalid request");
+                throw new ArgumentNullException(nameof(user));
             }
 
-            if(user.Disabled > 0)
+            if(user.Id == Guid.Empty)
             {
-                logger.Warn($"User {user.Id} disabled.");
-
-                throw new SecurityException("Invalid request");
+                throw new ArgumentException(nameof(user.Id));
             }
 
-            password = Helper.GetSha256(password);
-
-            Credential credential = _storage.CredentialGet(user, password);
-
-            if(credential != null)
+            if (string.IsNullOrEmpty(user.Username))
             {
-                int passwordAlreadyUsedDays = Settings.Get("PasswordAlreadyUsed", 90);
-
-                if(Helper.GetFromUnixTimestamp(credential.Created).AddDays(passwordAlreadyUsedDays) > DateTime.Now)
-                {
-                    throw new InvalidOperationException($"Your password is already used in the last {passwordAlreadyUsedDays} days.");
-                }
+                throw new ArgumentNullException(nameof(user.Username));
             }
 
-            _storage.CredentialDeleteLatest(user);
+            return _storage.UserResources(user.Username);
+        }
 
-            _storage.CredentialAdd(user, Helper.GetSha256(password));
+        /// <summary>
+        /// Get a bearer token for user
+        /// </summary>
+        /// <param name="user"></param>
+        /// <returns></returns>
+        internal static string GetBearer(Entities.User user)
+        {
+            if (user == null)
+            {
+                throw new ArgumentNullException(nameof(user));
+            }
+
+            if (user.Id == Guid.Empty)
+            {
+                throw new ArgumentException(nameof(user.Id));
+            }
+
+            Credential credential = _storage.CredentialGet(user);
+
+            if(credential == null)
+            {
+                logger.Warn($"User {user.Id} tried to generate a new bearer, but not found valid credentials to encrypt its token.");
+
+                throw new UnauthorizedAccessException("Unauthorized");
+            }
+
+            string token = Helper.GetBearer(credential.Value, Context.Current.User);
+
+            return token;
         }
     }
 }

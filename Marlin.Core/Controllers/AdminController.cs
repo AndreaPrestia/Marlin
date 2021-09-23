@@ -10,8 +10,6 @@ namespace Marlin.Core.Controllers
     [Route("admin")]
     public class AdminController : SecureController
     {
-        private static readonly NLog.Logger logger = NLog.Web.NLogBuilder.ConfigureNLog("nlog.config").GetCurrentClassLogger();
-
         #region Role
         /// <summary>
         /// Available roles 
@@ -145,45 +143,6 @@ namespace Marlin.Core.Controllers
 
             return GetOutput();
         }
-
-        /// <summary>
-        /// Add assembly to role 
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        [HttpPost("role.assembly.api")]
-        public IActionResult AddAssemblyRole(RoleAssemblyRequest request)
-        {
-            Business.Administration.RoleAddAssembly(request.RoleId, request.AssemblyId);
-
-            return GetOutput();
-        }
-
-        /// <summary>
-        /// Removes assembly from role 
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        [HttpDelete("role.assembly.api")]
-        public IActionResult DeleteAssemblyRole(RoleAssemblyRequest request)
-        {
-            Business.Administration.RoleRemoveAssembly(request.RoleId, request.AssemblyId);
-
-            return GetOutput();
-        }
-
         #endregion
 
         #region Language
@@ -260,82 +219,6 @@ namespace Marlin.Core.Controllers
         public IActionResult TranslationSet(TranslationRequest request)
         {
             Business.Administration.TranslationSet(new Entities.Translation() { LanguageId = request.LanguageId, Original = request.Original, Translated = request.Translated });
-            return GetOutput();
-        }
-
-        #endregion
-
-        #region Assembly
-        /// <summary>
-        /// Available assemblies 
-        /// </summary>
-        /// <returns></returns>
-        [ProducesResponseType(typeof(AssembliesResponse), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        [HttpGet("assemblies.api")]
-        public IActionResult Assemblies()
-        {
-            return GetOutput(new AssembliesResponse()
-            {
-                Assemblies = Business.Administration.AssemblyList()
-            });
-        }
-
-        /// <summary>
-        /// Add an assembly 
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        [HttpPost("assembly.api")]
-        public IActionResult AddAssembly(AssemblyAddRequest request)
-        {
-            Business.Administration.AssemblyAdd(request.Name);
-            return GetOutput();
-        }
-
-        /// <summary>
-        /// Updates an assembly 
-        /// </summary>
-        /// <param name="request"></param>
-        /// <returns></returns>
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        [HttpPatch("assembly.api")]
-        public IActionResult UpdateAssembly(AssemblyUpdateRequest request)
-        {
-            Business.Administration.AssemblyUpdate(request.Id, request.Name);
-            return GetOutput();
-        }
-
-        /// <summary>
-        /// Delete an assembly 
-        /// </summary>
-        /// <param name="id">Assembly id</param>
-        /// <returns></returns>
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
-        [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status500InternalServerError)]
-        [HttpDelete("assembly.api")]
-        public IActionResult DeleteAssembly(Guid id)
-        {
-            Business.Administration.AssemblyDelete(id);
             return GetOutput();
         }
 

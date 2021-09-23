@@ -6,23 +6,14 @@ namespace Marlin.Core.Interfaces
 {
     public interface IStorage
     {
-        public void AssemblyAdd(string name);
-
-        public void AssemblyUpdate(Assembly assembly);
-        public void AssemblyDelete(Guid assemblyId);
-        public bool AssemblyCanAccess(User user, string name);
-        public Assembly AssemblyGet(string name);
-        public List<Assembly> AssemblyList();
         public void UserAdd(string username);
         public void UserPropertyAdd(User user, string key, string value);
         public void UserPropertyUpdate(User user, string key, string value);
         public void UserPropertyDelete(User user, string key);
         public string UserPropertyGet(User user, string key);
-        public void UserSetResetToken(User user, Guid resetToken);
-        public void UserUpdate(Guid userId, string username);
         public List<User> UserSearch(string query, int page, int limit);
         public User UserGet(string user);
-        public User UserGetByResetToken(Guid resetToken);
+        public List<Resource> UserResources(string user);
         public void UserDisable(Guid userId);
         public void UserEnable(Guid userId);
         public void UserDelete(Guid userId);
@@ -30,6 +21,7 @@ namespace Marlin.Core.Interfaces
         public void UserUnauthorize(Guid userId, Guid roleId);
         public void CredentialAdd(User user, string value);
         public Credential CredentialGet(User user, string value);
+        public Credential CredentialGet(User user);
         public void CredentialDeleteLatest(User user);
         public List<Role> RoleList();
         public void RoleAdd(string name);
@@ -37,9 +29,8 @@ namespace Marlin.Core.Interfaces
         public void RoleUpdate(Guid roleId, string name);
         public void RoleAddResource(Guid roleId, Guid resourceId);
         public void RoleRemoveResource(Guid roleId, Guid resourceId);
-        public void RoleAddAssembly(Guid roleId, Guid assemblyId);
-        public void RoleRemoveAssembly(Guid roleId, Guid assemblyId);
         public void RoleDelete(Guid roleId);
+        public bool ResourceCanAccess(Guid userId, string url, string method);
         public List<Resource> ResourceList();
         public void ResourceAdd(Resource resource);
         public Resource ResourceGet(string url, string method);

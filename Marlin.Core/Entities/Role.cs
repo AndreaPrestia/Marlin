@@ -6,6 +6,5 @@ namespace Marlin.Core.Entities
     {
         public string Name { get; set; }
         public List<Resource> Resources { get; set; }
-        public List<Assembly> Assemblies { get; set; }
     }
 }

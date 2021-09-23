@@ -11,77 +11,6 @@ namespace Marlin.Core.Business
     {
         private static readonly IStorage _storage = StorageManager.Storage;
 
-        #region Assembly
-        /// <summary>
-        /// Adds an assembly
-        /// </summary>
-        /// <param name="name">Assembly name</param>
-        internal static void AssemblyAdd(string name)
-        {
-            if (string.IsNullOrEmpty(name))
-            {
-                throw new ArgumentNullException(nameof(name));
-            }
-
-            Assembly assembly = _storage.AssemblyGet(name);
-
-            if (assembly != null)
-            {
-                throw new InvalidOperationException("Assembly already registered.");
-            }
-
-            _storage.AssemblyAdd(name);
-        }
-
-        /// <summary>
-        /// Updates an assembly
-        /// </summary>
-        /// <param name="assemblyId">Assembly id</param>
-        /// <param name="name">Assembly name</param>
-        internal static void AssemblyUpdate(Guid assemblyId, string name)
-        {
-            if (assemblyId == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(assemblyId));
-            }
-
-            if (string.IsNullOrEmpty(name))
-            {
-                throw new ArgumentNullException(nameof(name));
-            }
-
-            Assembly assembly = _storage.AssemblyGet(name);
-
-            if (assembly != null && assembly.Id != assemblyId)
-            {
-                throw new InvalidOperationException("Assembly already registered.");
-            }
-
-            _storage.AssemblyUpdate(new Assembly() { Id = assemblyId, Name = name });
-        }
-
-        /// <summary>
-        /// Deletes an assembly
-        /// </summary>
-        /// <param name="assemblyId">Assembly id</param>
-        internal static void AssemblyDelete(Guid assemblyId)
-        {
-            if (assemblyId == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(assemblyId));
-            }
-
-            _storage.AssemblyDelete(assemblyId);
-        }
-
-
-        /// <summary>
-        /// Returns assemblies list
-        /// </summary>
-        /// <returns></returns>
-        internal static List<Assembly> AssemblyList() => _storage.AssemblyList();
-        #endregion
-
         #region Role
 
         /// <summary>
@@ -183,46 +112,6 @@ namespace Marlin.Core.Business
             }
 
             _storage.RoleRemoveResource(roleId, resourceId);
-        }
-
-        /// <summary>
-        /// Adds an assembly to role
-        /// </summary>
-        /// <param name="roleId"></param>
-        /// <param name="assemblyId"></param>
-        internal static void RoleAddAssembly(Guid roleId, Guid assemblyId)
-        {
-            if (roleId == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(roleId));
-            }
-
-            if (assemblyId == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(assemblyId));
-            }
-
-            _storage.RoleAddAssembly(roleId, assemblyId);
-        }
-
-        /// <summary>
-        /// Removes an assembly to role
-        /// </summary>
-        /// <param name="roleId"></param>
-        /// <param name="assemblyId"></param>
-        internal static void RoleRemoveAssembly(Guid roleId, Guid assemblyId)
-        {
-            if (roleId == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(roleId));
-            }
-
-            if (assemblyId == Guid.Empty)
-            {
-                throw new ArgumentException(nameof(assemblyId));
-            }
-
-            _storage.RoleRemoveAssembly(roleId, assemblyId);
         }
 
         /// <summary>
