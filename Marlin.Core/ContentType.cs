@@ -1,8 +1,8 @@
 ﻿namespace Marlin.Core
 {
-    public static class ContentType
+    internal static class ContentType
     {
-        public const string TextPlain = "text/plain";
-        public const string ApplicationJson = "application/json";
+        internal const string TextPlain = "text/plain";
+        internal const string ApplicationJson = "application/json";
     }
 }

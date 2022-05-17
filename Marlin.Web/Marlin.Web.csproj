@@ -8,8 +8,4 @@
     <PackageReference Include="Microsoft.OpenApi" Version="1.2.3" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\Marlin.SqlServer\Marlin.SqlServer.csproj" />
-  </ItemGroup>
-
 </Project>
