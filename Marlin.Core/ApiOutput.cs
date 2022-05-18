@@ -4,7 +4,7 @@ namespace Marlin.Core
 {
     public class ApiOutput
     {
-        public ApiOutput(object data = null, int statusCode = StatusCodes.Status200OK, string contentType = Heyzon.Core.ContentType.ApplicationJson)
+        public ApiOutput(object data = null, int statusCode = StatusCodes.Status200OK, string contentType = "application/json")
         {
             Response = data != null ? Utility.Serialize(data) : string.Empty;
             StatusCode = statusCode;

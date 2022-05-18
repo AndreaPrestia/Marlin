@@ -9,7 +9,7 @@
         public const string ApiConflict = "API '{0}' {1} is duplicated. Cannot resolve the endpoint.";
         public const string ApiBodyOnlyOne = "Only one body parameter has to be provided.";
         public const string ApiNotAuthorized = "API '{0}' {1} not authorized for user '{2}' with roles '{3}' in organization '{4}'";
-        public const string ApiNotAuthorizedClaim = "API '{0}' {1} not authorized for user '{2}' with claim '{3}' : '{4}' in organization '{5}'";
+        public const string ApiNotAuthorizedClaim = "API '{0}' {1} not authorized";
         public const string ApiKeySecretNotValid = "API Key secret not valid";
         public const string ApiKeyNotAvailable = "API Key not available for user '{0}' organization {1}";
         public const string ConfigurationNotProvided = "Configuration '{0}' not provided";

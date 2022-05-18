@@ -1,14 +1,10 @@
-﻿using Marlin.Core.Entities;
-using Marlin.Core.Models;
+﻿using Marlin.Core.Interfaces.Entities;
 
 namespace Marlin.Core.Interfaces
 {
-    public interface IAuthorizationHandler
+    public interface IAuthorizationHandler<T, T1> where T : IIdentity<T1>, new()
     {
-        public User Login(string username, string password);
-
-        public string GenerateCredential(User user);
-
-        public User Login(string username);
+        T Login(object[] args);
+        string GenerateCredential(T identity);
     }
 }

@@ -1,7 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace Marlin.Core.Entities
 {
@@ -9,24 +7,8 @@ namespace Marlin.Core.Entities
     {
         public Event()
         {
-
-        }
-
-        public Event(HttpContext httpContext, double durationMilliseconds, string message, string requestBody, string response, IOrganization organization, IUser user)
-        {
-            Level = new Level() { Id = string.IsNullOrEmpty(message) ? (int)EventLevels.Info : (int)EventLevels.Error };
-            Organization = organization;
-            User = user;
-            Protocol = httpContext.Request.ProtocolVersion.ToString();
-            Url = httpContext.Request.Url?.LocalPath;
-            Method = httpContext.Request.HttpMethod;
-            Request = httpContext.Request.QueryString.ToString();
-            Response = response;
-            Host = httpContext.Request.UserHostAddress;
-            Client = httpContext.Request.RemoteEndPoint?.ToString();
-            Payload = requestBody;
-            Message = message;
-            Milliseconds = durationMilliseconds;
+            Id = Guid.NewGuid();
+            Created = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
         }
 
         public Guid Id { get; set; }

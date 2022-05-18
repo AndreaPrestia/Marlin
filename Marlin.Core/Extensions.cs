@@ -1,4 +1,5 @@
-﻿using Marlin.Core.Interfaces;
+﻿using System;
+using Marlin.Core.Interfaces;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.CookiePolicy;
 using Microsoft.AspNetCore.Http;
@@ -15,6 +16,8 @@ namespace Marlin.Core
         /// <param name="services"></param>
         public static void AddMarlin(this IServiceCollection services)
         {
+            services.AddScoped<TokenManager>();
+
             services.AddCors();
 
             services.Configure<CookiePolicyOptions>(options =>
@@ -34,9 +37,14 @@ namespace Marlin.Core
         {
             var configuration = builder.ApplicationServices.GetService<IConfiguration>();
 
+            if (configuration == null)
+            {
+                throw new ArgumentNullException(nameof(configuration));
+            }
+
             var origins = configuration["Marlin:CorsOrigins"]?.Split(';');
 
-            builder.UseCors(builder => builder
+            builder.UseCors(corsPolicyBuilder => corsPolicyBuilder
                 .WithOrigins(origins)
                 .AllowAnyMethod()
                 .AllowAnyHeader()

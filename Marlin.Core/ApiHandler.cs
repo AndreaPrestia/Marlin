@@ -96,7 +96,7 @@ namespace Marlin.Core
 
         public ApiOutput IMUsed(object content = null, string contentType = "application/json")
         {
-            return GetResult(StatusCodes.Status226ImUsed, content, contentType);
+            return GetResult(StatusCodes.Status226IMUsed, content, contentType);
         }
 
         public ApiOutput InsufficientStorage(object content = null, string contentType = "application/json")
@@ -191,7 +191,7 @@ namespace Marlin.Core
 
         public ApiOutput Ok(object content = null, string contentType = "application/json")
         {
-            return GetResult(StatusCodes.Status200Ok, content, contentType);
+            return GetResult(StatusCodes.Status200OK, content, contentType);
         }
 
         public ApiOutput PartialContent(object content = null, string contentType = "application/json")

@@ -1,9 +1,9 @@
-﻿using Marlin.Core.Entities;
+﻿using Marlin.Core.Interfaces.Entities;
 
 namespace Marlin.Core.Interfaces
 {
-    public interface IMessageHandler
+    public interface IMessageHandler<in T, T1> where T : IIdentity<T1>, new()
     {
-        public void Send(User user, string message);
+        void Send(T identity, string message);
     }
 }

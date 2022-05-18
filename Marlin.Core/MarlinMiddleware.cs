@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Reflection;
 using System.Security;
 using System.Threading.Tasks;
 
@@ -24,7 +25,6 @@ namespace Marlin.Core
         private readonly IEventHandler _loggerHandler;
         private readonly string _jwtIssuer;
         private readonly string _jwtAudience;
-        private readonly int _jwtDurationHours;
         private readonly string _jwtSecret;
 
         public MarlinMiddleware(RequestDelegate next, IConfiguration configuration, IServiceProvider serviceProvider)
@@ -35,7 +35,7 @@ namespace Marlin.Core
 
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 
-            bool.TryParse(_configuration["Marlin:EventLoggerEnabled"], out bool eventLoggerEnabled);
+            bool.TryParse(_configuration["Marlin:EventLoggerEnabled"], out var eventLoggerEnabled);
 
             if (eventLoggerEnabled)
             {
@@ -45,7 +45,6 @@ namespace Marlin.Core
             _jwtAudience = _configuration["Marlin:JwtAudience"];
             _jwtIssuer = _configuration["Marlin:JwtIssuer"];
             _jwtSecret = _configuration["Marlin:JwtSecret"];
-            int.TryParse(_configuration["Marlin:JwtSecret"], out _jwtDurationHours);
         }
 
         public async Task Invoke(HttpContext context)
@@ -227,9 +226,7 @@ namespace Marlin.Core
                 {
                     if (!Context.HasClaim(secured.Claim))
                     {
-                        throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url, input.Method, Context.GetClaim<User>("User").Id, secured.Claim,
-    string.Join(",", Context.GetClaim<List<string>>("Roles")), Context.GetClaim<Guid>("Organization")));
-
+                        throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url, input.Method));
                     }
 
                     if (secured.Claim.Equals("*"))
@@ -241,8 +238,7 @@ namespace Marlin.Core
 
                     if (string.IsNullOrEmpty(claimContent) || !claimContent.Contains(secured.Value))
                     {
-                        throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url, input.Method, Context.GetClaim<User>("User").Id, secured.Claim,
-                            string.Join(",", Context.GetClaim<List<string>>("Roles")), Context.GetClaim<Guid>("Organization")));
+                        throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url, input.Method));
                     }
                 }
             }
@@ -266,7 +262,7 @@ namespace Marlin.Core
 
                     if (parameters[i].GetCustomAttribute<ApiParameter>() != null)
                     {
-                        value = input.Context.Request.QueryString[parameters[i].Name];
+                        value = input.Context.Request.Query[parameters[i].Name];
 
                         if (value == null && !parameters[i].HasDefaultValue)
                         {
@@ -306,24 +302,6 @@ namespace Marlin.Core
             {
                 Context.Add(claim.Key, claim.Value);
             }
-        }
-
-        public string GetToken()
-        {
-            var tokenBuilder = JwtBuilder.Create()
-  .WithAlgorithm(new HMACSHA256Algorithm())
-  .WithSecret(_jwtSecret)
-  .AddClaim("exp", DateTimeOffset.UtcNow.AddHours(_jwtDurationHours).ToUnixTimeSeconds())
-  .AddClaim("aud", _jwtAudience)
-  .AddClaim("iss", _jwtAudience)
-  .AddClaim("iat", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
-
-            foreach (var claim in Context.Current.Claims)
-            {
-                tokenBuilder.AddClaim(claim.Key, claim.Value);
-            }
-
-            return tokenBuilder.Encode();
         }
 
         private void LoadContext(HttpContext context)
