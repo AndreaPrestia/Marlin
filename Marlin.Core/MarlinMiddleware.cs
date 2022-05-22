@@ -6,6 +6,7 @@ using Marlin.Core.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -54,7 +55,7 @@ namespace Marlin.Core
             string content = null;
             string message = null;
             string requestBody = null;
-            var contentType = ContentType.ApplicationJson;
+            var contentType = ContentType.TextPlain;
             var statusCode = StatusCodes.Status200OK;
 
             var timeKeeper = new TimeKeeper();
@@ -70,7 +71,7 @@ namespace Marlin.Core
                     context.Request.ContentType = contentType;
                 }
 
-                if(context.Request.ContentType != contentType)
+                if (context.Request.ContentType != contentType)
                 {
                     throw new InvalidOperationException(string.Format(Messages.InvalidContentType, context.Request.ContentType, contentType));
                 }
@@ -97,7 +98,7 @@ namespace Marlin.Core
                 statusCode = StatusCodes.Status500InternalServerError;
                 contentType = ContentType.ApplicationJson;
                 message = _propagateApplicationError ? e.Message : Messages.GenericFailure;
-                content = Utility.Serialize(new { Message = message });
+                content = JsonConvert.SerializeObject(new { Message = message });
 
                 statusCode = e switch
                 {
@@ -206,47 +207,49 @@ namespace Marlin.Core
 
             var args = new object[parameters.Length];
 
-            if (parameters.Length > 0)
+            if (parameters.Length == 0)
             {
-                if (parameters.Any(x => x.GetCustomAttributes<ApiBody>().Count() > 1))
+                return args;
+            }
+
+            if (parameters.Any(x => x.GetCustomAttributes<ApiBody>().Count() > 1))
+            {
+                throw new ArgumentException(Messages.ApiBodyOnlyOne);
+            }
+
+            for (var i = 0; i < parameters.Length; i++)
+            {
+                var type = parameters[i].ParameterType;
+
+                object value;
+
+                if (parameters[i].GetCustomAttribute<ApiParameter>() != null)
                 {
-                    throw new ArgumentException(Messages.ApiBodyOnlyOne);
+                    value = input.Context.Request.Query[parameters[i].Name].FirstOrDefault();
+
+                    if (value == null && !parameters[i].HasDefaultValue)
+                    {
+                        throw new ArgumentException(string.Format(Messages.ParameterNotProvided, parameters[i].Name));
+                    }
+
+                    args[i] = Convert.ChangeType(value, type);
                 }
-
-                for (var i = 0; i < parameters.Length; i++)
+                else if (parameters[i].GetCustomAttribute<ApiBody>() != null)
                 {
-                    var type = parameters[i].ParameterType;
+                    value = JsonConvert.DeserializeObject(body, type);
 
-                    object value;
+                    args[i] = value ?? throw new ArgumentException(string.Format(Messages.EntityNotProvided, parameters[i].Name));
+                }
+                else if (parameters[i].GetCustomAttribute<ApiHeader>() != null)
+                {
+                    value = input.Context.Request.Headers[parameters[i].Name].FirstOrDefault();
 
-                    if (parameters[i].GetCustomAttribute<ApiParameter>() != null)
+                    if (value == null && !parameters[i].HasDefaultValue)
                     {
-                        value = input.Context.Request.Query[parameters[i].Name];
-
-                        if (value == null && !parameters[i].HasDefaultValue)
-                        {
-                            throw new ArgumentException(string.Format(Messages.ParameterNotProvided, parameters[i].Name));
-                        }
-
-                        args[i] = Convert.ChangeType(value, type);
+                        throw new ArgumentException(string.Format(Messages.HeaderNotProvided, parameters[i].Name));
                     }
-                    else if (parameters[i].GetCustomAttribute<ApiBody>() != null)
-                    {
-                        value = Utility.Deserialize(body, type);
 
-                        args[i] = value ?? throw new ArgumentException(string.Format(Messages.EntityNotProvided, parameters[i].Name));
-                    }
-                    else if (parameters[i].GetCustomAttribute<ApiHeader>() != null)
-                    {
-                        value = input.Context.Request.Headers[parameters[i].Name];
-
-                        if (value == null && !parameters[i].HasDefaultValue)
-                        {
-                            throw new ArgumentException(string.Format(Messages.HeaderNotProvided, parameters[i].Name));
-                        }
-
-                        args[i] = Convert.ChangeType(value, type);
-                    }
+                    args[i] = Convert.ChangeType(value, type);
                 }
             }
 
@@ -257,43 +260,47 @@ namespace Marlin.Core
         {
             var securedAttributes = api.GetCustomAttributes<Secured>().ToList();
 
-            if (securedAttributes.Any())
+            if (!securedAttributes.Any())
             {
-                if (Context.Current == null || !Context.IsLoaded)
+                return;
+            }
+
+            if (Context.Current == null || !Context.IsLoaded)
+            {
+                this.LoadContext(input.Context);
+            }
+
+            if (Context.Current == null || !Context.IsLoaded)
+            {
+                throw new SecurityException(Messages.Unauthorized);
+            }
+
+            foreach (var secured in securedAttributes)
+            {
+                if (!Context.HasClaim(secured.Claim))
                 {
-                    this.LoadContext(input.Context);
+                    throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url, input.Method));
                 }
 
-                if (Context.Current == null || !Context.IsLoaded)
+                if (secured.Claim.Equals("*"))
                 {
-                    throw new SecurityException(Messages.Unauthorized);
+                    continue;
                 }
 
-                foreach (var secured in securedAttributes)
+                var claimContent = Context.GetClaim<string>(secured.Claim);
+
+                if (string.IsNullOrEmpty(claimContent) || !secured.Value.Contains(claimContent))
                 {
-                    if (!Context.HasClaim(secured.Claim))
-                    {
-                        throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url, input.Method));
-                    }
-
-                    if (secured.Claim.Equals("*"))
-                    {
-                        continue;
-                    }
-
-                    var claimContent = Context.GetClaim<string>(secured.Claim);
-
-                    if (string.IsNullOrEmpty(claimContent) || !claimContent.Contains(secured.Value))
-                    {
-                        throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url, input.Method));
-                    }
+                    throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url, input.Method));
                 }
             }
         }
 
         private List<ApiHandler> FindApiHandlers(ApiInput input)
         {
-            return typeof(ApiHandler).Assembly.GetTypes().Where(t =>
+            var friendlyName = AppDomain.CurrentDomain.FriendlyName;
+
+            return AppDomain.CurrentDomain.GetAssemblies().First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
           t.IsSubclassOf(typeof(ApiHandler))
           && !t.IsAbstract && !t.IsInterface).Where(tp => tp.GetMethods().Any(n => n.GetCustomAttributes<ApiRoute>().Any(x => x.Url == input.Url && x.Method == input.Method)))
               .Select(t =>
@@ -331,7 +338,7 @@ namespace Marlin.Core
 
         private void LoadContext(HttpContext context)
         {
-            var tokenString = context.Request.Headers[Messages.HeaderAuthorization];
+            var tokenString = context.Request.Headers[Messages.HeaderAuthorization].FirstOrDefault();
 
             Console.WriteLine($"Token received: {tokenString}");
 
@@ -342,7 +349,7 @@ namespace Marlin.Core
 
             var jwtContent = JwtBuilder.Create()
     .WithAlgorithm(new HMACSHA256Algorithm())
-    .WithSecret(_configuration[_jwtSecret])
+    .WithSecret(_jwtSecret)
     .MustVerifySignature()
     .WithVerifySignature(true)
     .Decode<Dictionary<string, object>>(tokenString);
@@ -383,7 +390,7 @@ namespace Marlin.Core
                 throw new SecurityException(Messages.TokenInvalidIss);
             }
 
-            var hasAudience = jwtContent.TryGetValue("audience", out object audience);
+            var hasAudience = jwtContent.TryGetValue("aud", out object audience);
 
             if (!hasAudience && (audience == null || !audience.ToString().Equals(_configuration[_jwtAudience])))
             {

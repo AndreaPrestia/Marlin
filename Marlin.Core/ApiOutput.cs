@@ -4,9 +4,9 @@ namespace Marlin.Core
 {
     public class ApiOutput
     {
-        public ApiOutput(object data = null, int statusCode = StatusCodes.Status200OK, string contentType = "application/json")
+        public ApiOutput(string data = null, int statusCode = StatusCodes.Status200OK, string contentType = "application/json")
         {
-            Response = data != null ? Utility.Serialize(data) : string.Empty;
+            Response = data ?? string.Empty;
             StatusCode = statusCode;
             ContentType = contentType;
         }

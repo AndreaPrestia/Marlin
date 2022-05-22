@@ -1,12 +1,15 @@
 ﻿using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
 
 namespace Marlin.Core
 {
     public abstract class ApiHandler
     {
+        private static readonly JsonSerializerSettings Options = new() { StringEscapeHandling = StringEscapeHandling.Default };
+
         private ApiOutput GetResult(int statusCode, object content, string contentType)
         {
-            return new ApiOutput() { ContentType = contentType, StatusCode = statusCode, Response = content != null ? Utility.Serialize(content) : string.Empty };
+            return new ApiOutput() { ContentType = contentType, StatusCode = statusCode, Response = content != null ? JsonConvert.SerializeObject(content, Options) : string.Empty };
         }
 
         public ApiOutput Accepted(object content = null, string contentType = "application/json")
