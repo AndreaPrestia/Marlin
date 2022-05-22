@@ -2,7 +2,6 @@
 {
     internal static class ContentType
     {
-        internal const string TextPlain = "text/plain";
         internal const string ApplicationJson = "application/json";
     }
 }

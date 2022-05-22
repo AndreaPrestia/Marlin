@@ -23,6 +23,8 @@ namespace Marlin.Web
                 app.UseHsts();
             }
 
+            app.UseHttpsRedirection();
+
             app.UseMarlin();
         }
     }

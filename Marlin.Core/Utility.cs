@@ -1,11 +1,9 @@
 ﻿using Newtonsoft.Json;
 using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Marlin.Core
 {
-   internal static  class Utility
+    internal static  class Utility
     {
         private static readonly JsonSerializerSettings Options = new JsonSerializerSettings() { StringEscapeHandling = StringEscapeHandling.Default };
 

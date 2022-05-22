@@ -32,5 +32,9 @@
         public const string EntityNotProvided = "Entity '{0}' not provided";
         public const string Unauthorized = "Unauthorized";
         public const string RequestNotProvided = "Request not provided";
+        public const string ConfigurationNotValidOrNotProvided = "Configuration key '{0}' not provided";
+        public const string ContextNotLoaded = "Context is not loaded";
+        public const string InvalidContentType = "Content-Type '{0}' is not allowed. Only '{1}' allowed.";
+
     }
 }

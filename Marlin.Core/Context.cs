@@ -55,7 +55,7 @@ namespace Marlin.Core
             }
         }
 
-        public static bool IsLoaded => _context.Claims != null;
+        public static bool IsLoaded => _context != null && _context.Claims != null;
 
         public static bool HasClaim(string name) => _context.Claims.ContainsKey(name.ToLowerInvariant().Trim());
 

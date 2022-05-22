@@ -2,24 +2,33 @@
 using JWT.Builder;
 using Microsoft.Extensions.Configuration;
 using System;
+using System.Diagnostics.CodeAnalysis;
+using System.Security;
 
 namespace Marlin.Core
 {
     public sealed class TokenManager
     {
+        private const string configurationJwtSecretKey = "Marlin:JwtSecret";
+        private const string configurationJwtIssuerKey = "Marlin:JwtIssuer";
+        private const string configurationJwtAudienceKey = "Marlin:JwtAudience";
+        private const string configurationJwtDurationHoursKey = "Marlin:JwtDurationHours";
         private readonly string _jwtIssuer;
         private readonly string _jwtAudience;
         private readonly int _jwtDurationHours;
         private readonly string _jwtSecret;
 
-        public TokenManager(IConfiguration configuration)
+        public TokenManager([NotNull]IConfiguration configuration)
         {
-            var configuration1 = configuration ?? throw new ArgumentNullException(nameof(configuration));
+            _jwtAudience = configuration[configurationJwtAudienceKey] ?? throw new ArgumentNullException(string.Format(Messages.ConfigurationNotValidOrNotProvided, configurationJwtAudienceKey));
+            _jwtIssuer = configuration[configurationJwtIssuerKey] ?? throw new ArgumentNullException(string.Format(Messages.ConfigurationNotValidOrNotProvided, configurationJwtIssuerKey));
+            _jwtSecret = configuration[configurationJwtSecretKey] ?? throw new ArgumentNullException(string.Format(Messages.ConfigurationNotValidOrNotProvided, configurationJwtSecretKey));
+            bool jwtDurationConversion = int.TryParse(configuration[configurationJwtDurationHoursKey], out _jwtDurationHours);
 
-            _jwtAudience = configuration1["Marlin:JwtAudience"];
-            _jwtIssuer = configuration1["Marlin:JwtIssuer"];
-            _jwtSecret = configuration1["Marlin:JwtSecret"];
-            int.TryParse(configuration1["Marlin:JwtSecret"], out _jwtDurationHours);
+            if (!jwtDurationConversion)
+            {
+                throw new ArgumentException(string.Format(Messages.ConfigurationNotValidOrNotProvided, configurationJwtDurationHoursKey));
+            }
         }
 
         /// <summary>
@@ -28,6 +37,11 @@ namespace Marlin.Core
         /// <returns></returns>
         public string Jwt()
         {
+            if (!Context.IsLoaded)
+            {
+                throw new SecurityException(Messages.ContextNotLoaded);
+            }
+
             var tokenBuilder = JwtBuilder.Create()
                 .WithAlgorithm(new HMACSHA256Algorithm())
                 .WithSecret(_jwtSecret)

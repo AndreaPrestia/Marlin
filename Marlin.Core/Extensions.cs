@@ -16,6 +16,20 @@ namespace Marlin.Core
         /// <param name="services"></param>
         public static void AddMarlin(this IServiceCollection services)
         {
+            string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+
+            var configBuilder = new ConfigurationBuilder().AddJsonFile(!string.IsNullOrEmpty(environment) ? $"appsettings.{environment}.json" : "appsettings.json");
+            var configuration = configBuilder.Build();
+
+            services.AddSingleton<IConfiguration>(configuration);
+
+            var isEventLoggerEnabled = bool.TryParse(configuration["Marlin:EventLoggerEnabled"], out var eventLoggerEnabled);
+
+            if (isEventLoggerEnabled && eventLoggerEnabled)
+            {
+                services.AddSingleton<IEventHandler>();
+            }
+
             services.AddScoped<TokenManager>();
 
             services.AddCors();
@@ -52,19 +66,7 @@ namespace Marlin.Core
 
             builder.UseCookiePolicy();
 
-            builder.MapWhen(context => context.Request.Path.ToString().StartsWith("/"), appBranch =>
-            {
-                appBranch.UseMiddleware<MarlinMiddleware>();
-            });
-        }
-
-        /// <summary>
-        /// Extension that adds IEventHandler as singleton
-        /// </summary>
-        /// <param name="services"></param>
-        public static void AddEventHandler(this IServiceCollection services)
-        {
-            services.AddSingleton<IEventHandler>();
+            builder.UseMiddleware<MarlinMiddleware>();
         }
     }
 }
