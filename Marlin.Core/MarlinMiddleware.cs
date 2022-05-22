@@ -19,8 +19,6 @@ namespace Marlin.Core
 {
     public class MarlinMiddleware
     {
-        private const string developmentEnvironment = "development";
-        private const string aspnetCoreEnvironmentVariable = "ASPNETCORE_ENVIRONMENT";
         private readonly IConfiguration _configuration;
         private readonly RequestDelegate _next;
         private readonly IServiceProvider _serviceProvider;
@@ -28,7 +26,7 @@ namespace Marlin.Core
         private readonly string _jwtIssuer;
         private readonly string _jwtAudience;
         private readonly string _jwtSecret;
-        private static readonly bool _propagateApplicationError = Environment.GetEnvironmentVariable(aspnetCoreEnvironmentVariable) != developmentEnvironment;
+        private readonly bool _propagateApplicationError;
 
         public MarlinMiddleware(RequestDelegate next, IConfiguration configuration, IServiceProvider serviceProvider)
         {
@@ -38,16 +36,17 @@ namespace Marlin.Core
 
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 
+            _propagateApplicationError = bool.Parse(_configuration["Marlin:PropagateApplicationError"]);
+            _jwtAudience = _configuration["Marlin:JwtAudience"];
+            _jwtIssuer = _configuration["Marlin:JwtIssuer"];
+            _jwtSecret = _configuration["Marlin:JwtSecret"];
+
             var isEventLoggerEnabled = bool.TryParse(_configuration["Marlin:EventLoggerEnabled"], out var eventLoggerEnabled);
 
             if (isEventLoggerEnabled && eventLoggerEnabled)
             {
                 _loggerHandler = serviceProvider.GetService<IEventHandler>();
             }
-
-            _jwtAudience = _configuration["Marlin:JwtAudience"];
-            _jwtIssuer = _configuration["Marlin:JwtIssuer"];
-            _jwtSecret = _configuration["Marlin:JwtSecret"];
         }
 
         public async Task Invoke(HttpContext context)

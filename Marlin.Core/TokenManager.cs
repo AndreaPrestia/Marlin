@@ -23,12 +23,8 @@ namespace Marlin.Core
             _jwtAudience = configuration[configurationJwtAudienceKey] ?? throw new ArgumentNullException(string.Format(Messages.ConfigurationNotValidOrNotProvided, configurationJwtAudienceKey));
             _jwtIssuer = configuration[configurationJwtIssuerKey] ?? throw new ArgumentNullException(string.Format(Messages.ConfigurationNotValidOrNotProvided, configurationJwtIssuerKey));
             _jwtSecret = configuration[configurationJwtSecretKey] ?? throw new ArgumentNullException(string.Format(Messages.ConfigurationNotValidOrNotProvided, configurationJwtSecretKey));
-            bool jwtDurationConversion = int.TryParse(configuration[configurationJwtDurationHoursKey], out _jwtDurationHours);
 
-            if (!jwtDurationConversion)
-            {
-                throw new ArgumentException(string.Format(Messages.ConfigurationNotValidOrNotProvided, configurationJwtDurationHoursKey));
-            }
+            _jwtDurationHours = int.Parse(configuration[configurationJwtDurationHoursKey]);
         }
 
         /// <summary>
