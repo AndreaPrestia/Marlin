@@ -1,18 +1,10 @@
 ﻿using Marlin.Core;
 using Marlin.Core.Attributes;
-using System;
 
 namespace Marlin.Web.Api
 {
     public class ExampleHandler : ApiHandler
     {
-        private readonly TokenManager _tokenManager;
-
-        public ExampleHandler(TokenManager tokenManager)
-        {
-            _tokenManager = tokenManager ?? throw new ArgumentNullException(nameof(tokenManager));
-        }
-
         [ApiRoute("/free", "GET")]
         public ApiOutput Free()
         {
@@ -40,7 +32,7 @@ namespace Marlin.Web.Api
             Context.Add("username", "Silvio");
             Context.Add("roles", "guests");
 
-            return Ok(_tokenManager.Jwt());
+            return Ok(Context.Current.Jwt);
         }
 
         [ApiRoute("/secured", "GET")]

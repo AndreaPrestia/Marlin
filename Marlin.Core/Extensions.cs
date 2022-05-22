@@ -30,8 +30,6 @@ namespace Marlin.Core
                 services.AddSingleton<IEventHandler>();
             }
 
-            services.AddScoped<TokenManager>();
-
             services.AddCors();
 
             services.Configure<CookiePolicyOptions>(options =>
