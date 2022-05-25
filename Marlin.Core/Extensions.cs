@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Marlin.Core.Entities;
 using Marlin.Core.Interfaces;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.CookiePolicy;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace Marlin.Core
 {
@@ -21,11 +22,16 @@ namespace Marlin.Core
             var configBuilder = new ConfigurationBuilder().AddJsonFile(!string.IsNullOrEmpty(environment) ? $"appsettings.{environment}.json" : "appsettings.json");
             var configuration = configBuilder.Build();
 
-            services.AddSingleton<IConfiguration>(configuration);
+            var marlinConfiguration = configuration.GetSection("Marlin").Get<MarlinConfiguration>();
 
-            var isEventLoggerEnabled = bool.TryParse(configuration["Marlin:EventLoggerEnabled"], out var eventLoggerEnabled);
+            if (marlinConfiguration == null || marlinConfiguration.JwtConfiguration == null)
+            {
+                throw new ArgumentNullException(nameof(marlinConfiguration));
+            }
 
-            if (isEventLoggerEnabled && eventLoggerEnabled)
+            services.AddSingleton(marlinConfiguration);
+
+            if (marlinConfiguration.EventLoggerEnabled)
             {
                 services.AddSingleton<IEventHandler>();
             }
@@ -47,14 +53,14 @@ namespace Marlin.Core
         /// <param name="builder"></param>
         public static void UseMarlin(this IApplicationBuilder builder)
         {
-            var configuration = builder.ApplicationServices.GetService<IConfiguration>();
+            var configuration = builder.ApplicationServices.GetService<MarlinConfiguration>();
 
             if (configuration == null)
             {
                 throw new ArgumentNullException(nameof(configuration));
             }
 
-            var origins = configuration["Marlin:CorsOrigins"]?.Split(';');
+            var origins = configuration.CorsOrigins?.Split(';');
 
             builder.UseCors(corsPolicyBuilder => corsPolicyBuilder
                 .WithOrigins(origins)

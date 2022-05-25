@@ -2,9 +2,9 @@
 using JWT.Builder;
 using Marlin.Core.Attributes;
 using Marlin.Core.Common;
+using Marlin.Core.Entities;
 using Marlin.Core.Interfaces;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using System;
@@ -20,31 +20,25 @@ namespace Marlin.Core
 {
     public class MarlinMiddleware
     {
-        private readonly IConfiguration _configuration;
+        private readonly MarlinConfiguration _configuration;
         private readonly RequestDelegate _next;
         private readonly IServiceProvider _serviceProvider;
         private readonly IEventHandler _loggerHandler;
-        private readonly string _jwtIssuer;
-        private readonly string _jwtAudience;
-        private readonly string _jwtSecret;
-        private readonly bool _propagateApplicationError;
 
-        public MarlinMiddleware(RequestDelegate next, IConfiguration configuration, IServiceProvider serviceProvider)
+        public MarlinMiddleware(RequestDelegate next, MarlinConfiguration configuration, IServiceProvider serviceProvider)
         {
             _next = next ?? throw new ArgumentNullException(nameof(next));
 
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
+            if(configuration.JwtConfiguration == null)
+            {
+                throw new ArgumentNullException(nameof(configuration.JwtConfiguration));
+            }
+
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 
-            _propagateApplicationError = bool.Parse(_configuration["Marlin:PropagateApplicationError"]);
-            _jwtAudience = _configuration["Marlin:JwtAudience"];
-            _jwtIssuer = _configuration["Marlin:JwtIssuer"];
-            _jwtSecret = _configuration["Marlin:JwtSecret"];
-
-            var isEventLoggerEnabled = bool.TryParse(_configuration["Marlin:EventLoggerEnabled"], out var eventLoggerEnabled);
-
-            if (isEventLoggerEnabled && eventLoggerEnabled)
+            if (_configuration.EventLoggerEnabled)
             {
                 _loggerHandler = serviceProvider.GetService<IEventHandler>();
             }
@@ -97,7 +91,7 @@ namespace Marlin.Core
 
                 statusCode = StatusCodes.Status500InternalServerError;
                 contentType = ContentType.ApplicationJson;
-                message = _propagateApplicationError ? e.Message : Messages.GenericFailure;
+                message = _configuration.PropagateApplicationError ? e.Message : Messages.GenericFailure;
                 content = JsonConvert.SerializeObject(new { Message = message });
 
                 statusCode = e switch
@@ -349,7 +343,7 @@ namespace Marlin.Core
 
             var jwtContent = JwtBuilder.Create()
     .WithAlgorithm(new HMACSHA256Algorithm())
-    .WithSecret(_jwtSecret)
+    .WithSecret(_configuration.JwtConfiguration.JwtSecret)
     .MustVerifySignature()
     .WithVerifySignature(true)
     .Decode<Dictionary<string, object>>(tokenString);
@@ -385,14 +379,14 @@ namespace Marlin.Core
 
             var hasIssuer = jwtContent.TryGetValue("iss", out object issuer);
 
-            if (!hasIssuer && (issuer == null || !issuer.ToString().Equals(_configuration[_jwtIssuer])))
+            if (!hasIssuer && (issuer == null || !issuer.ToString().Equals(_configuration.JwtConfiguration.JwtIssuer)))
             {
                 throw new SecurityException(Messages.TokenInvalidIss);
             }
 
             var hasAudience = jwtContent.TryGetValue("aud", out object audience);
 
-            if (!hasAudience && (audience == null || !audience.ToString().Equals(_configuration[_jwtAudience])))
+            if (!hasAudience && (audience == null || !audience.ToString().Equals(_configuration.JwtConfiguration.JwtAudience)))
             {
                 throw new SecurityException(Messages.TokenInvalidAud);
             }

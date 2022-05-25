@@ -1,5 +1,7 @@
 ﻿using JWT.Algorithms;
 using JWT.Builder;
+using Marlin.Core.Entities;
+using Marlin.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -12,14 +14,7 @@ namespace Marlin.Core
         [ThreadStatic]
         private static Context _context;
 
-        private const string configurationJwtSecretKey = "Marlin:JwtSecret";
-        private const string configurationJwtIssuerKey = "Marlin:JwtIssuer";
-        private const string configurationJwtAudienceKey = "Marlin:JwtAudience";
-        private const string configurationJwtDurationHoursKey = "Marlin:JwtDurationHours";
-        private readonly string _jwtIssuer;
-        private readonly string _jwtAudience;
-        private readonly int _jwtDurationHours;
-        private readonly string _jwtSecret;
+        private readonly MarlinConfiguration _marlinConfiguration;
 
         private Context()
         {
@@ -28,11 +23,12 @@ namespace Marlin.Core
             var configBuilder = new ConfigurationBuilder().AddJsonFile(!string.IsNullOrEmpty(environment) ? $"appsettings.{environment}.json" : "appsettings.json");
             var configuration = configBuilder.Build();
 
-            _jwtAudience = configuration[configurationJwtAudienceKey] ?? throw new ArgumentNullException(string.Format(Messages.ConfigurationNotValidOrNotProvided, configurationJwtAudienceKey));
-            _jwtIssuer = configuration[configurationJwtIssuerKey] ?? throw new ArgumentNullException(string.Format(Messages.ConfigurationNotValidOrNotProvided, configurationJwtIssuerKey));
-            _jwtSecret = configuration[configurationJwtSecretKey] ?? throw new ArgumentNullException(string.Format(Messages.ConfigurationNotValidOrNotProvided, configurationJwtSecretKey));
+            _marlinConfiguration = configuration.GetSection("Marlin").Get<MarlinConfiguration>();
 
-            _jwtDurationHours = int.Parse(configuration[configurationJwtDurationHoursKey]);
+            if (_marlinConfiguration == null || _marlinConfiguration.JwtConfiguration == null)
+            {
+                throw new ArgumentNullException(nameof(_marlinConfiguration));
+            }
         }
 
         public Dictionary<string, object> Claims { get; private set; }
@@ -98,10 +94,10 @@ namespace Marlin.Core
 
                 var tokenBuilder = JwtBuilder.Create()
                     .WithAlgorithm(new HMACSHA256Algorithm())
-                    .WithSecret(_jwtSecret)
-                    .AddClaim("exp", DateTimeOffset.UtcNow.AddHours(_jwtDurationHours).ToUnixTimeSeconds())
-                    .AddClaim("aud", _jwtAudience)
-                    .AddClaim("iss", _jwtIssuer)
+                    .WithSecret(_marlinConfiguration.JwtConfiguration.JwtSecret)
+                    .AddClaim("exp", DateTimeOffset.UtcNow.AddHours(_marlinConfiguration.JwtConfiguration.JwtDurationHours).ToUnixTimeSeconds())
+                    .AddClaim("aud", _marlinConfiguration.JwtConfiguration.JwtAudience)
+                    .AddClaim("iss", _marlinConfiguration.JwtConfiguration.JwtIssuer)
                     .AddClaim("iat", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
                 foreach (var claim in Current.Claims)
