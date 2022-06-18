@@ -48,6 +48,34 @@ namespace Marlin.Core
         }
 
         /// <summary>
+        /// Extension that add cors, cookie policy options
+        /// </summary>
+        /// <param name="services"></param>
+        public static IServiceProvider AddMarlinServices(this IServiceCollection services)
+        {
+            string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+
+            var configBuilder = new ConfigurationBuilder().AddJsonFile(!string.IsNullOrEmpty(environment) ? $"appsettings.{environment}.json" : "appsettings.json");
+            var configuration = configBuilder.Build();
+
+            var marlinConfiguration = configuration.GetSection("Marlin").Get<MarlinConfiguration>();
+
+            if (marlinConfiguration == null || marlinConfiguration.JwtConfiguration == null)
+            {
+                throw new ArgumentNullException(nameof(marlinConfiguration));
+            }
+
+            services.AddSingleton(marlinConfiguration);
+
+            if (marlinConfiguration.EventLoggerEnabled)
+            {
+                services.AddSingleton<IEventHandler>();
+            }
+
+            return services.BuildServiceProvider();
+        }
+
+        /// <summary>
         /// Extension that use cors with origins from app.settings.json, use cookie policy and adds the middleware
         /// </summary>
         /// <param name="builder"></param>
