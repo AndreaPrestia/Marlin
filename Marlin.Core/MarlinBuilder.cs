@@ -12,8 +12,8 @@ namespace Marlin.Core
     public class MarlinBuilder
     {
         private bool _isSecure = false;
-        private const string CertificateName = "Heyzon";
-        private const string SafePassword = "HeyzonServerCert666%$";
+        private const string CertificateName = "Marlin";
+        private const string SafePassword = "MarlinServerCert666%$";
 
         private readonly HttpListener _httpListener;
         private readonly MarlinServer _httpServer;
