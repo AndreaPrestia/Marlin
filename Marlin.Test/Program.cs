@@ -9,7 +9,7 @@ namespace Marlin.Test
         {
             try
             {
-                var marlinBuilder = MarlinBuilder.Init().UseHttps().StartListen();
+                var marlinBuilder = MarlinBuilder.Init().UseHttps().StartListen().HandleRequests().Build();
             }
             catch (Exception ex)
             {

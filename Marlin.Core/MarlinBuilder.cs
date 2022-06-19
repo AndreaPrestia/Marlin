@@ -61,10 +61,10 @@ namespace Marlin.Core
 
         public MarlinBuilder StartListen()
         {
-            _httpListener.Prefixes.Add($"http://localhost:8080/");
+            _httpListener.Prefixes.Add("http://*:8089/");
 
             if (_isSecure)
-                _httpListener.Prefixes.Add($"https://localhost:8443/");
+                _httpListener.Prefixes.Add("https://*:8443/");
 
             _httpListener.Start();
             return this;
@@ -148,6 +148,5 @@ namespace Marlin.Core
 
             return certificates.Count > 0;
         }
-
     }
 }
