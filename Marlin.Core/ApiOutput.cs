@@ -1,10 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
-
-namespace Marlin.Core
+﻿namespace Marlin.Core
 {
     public class ApiOutput
     {
-        public ApiOutput(string data = null, int statusCode = StatusCodes.Status200Ok, string contentType = "application/json")
+        public ApiOutput(string data = null, int statusCode = StatusCodes.Status200Ok, string contentType = Core.ContentType.ApplicationJson)
         {
             Response = data ?? string.Empty;
             StatusCode = statusCode;

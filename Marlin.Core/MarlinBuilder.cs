@@ -11,7 +11,6 @@ namespace Marlin.Core
 {
     public class MarlinBuilder
     {
-        private bool _isSecure = false;
         private const string CertificateName = "Marlin";
         private const string SafePassword = "MarlinServerCert666%$";
 
@@ -77,8 +76,6 @@ namespace Marlin.Core
 
                 AddCertToStore(certificate, StoreName.Root, StoreLocation.CurrentUser);
             }
-
-            _isSecure = true;
 
             return this;
         }
