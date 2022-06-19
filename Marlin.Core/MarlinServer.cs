@@ -75,7 +75,7 @@ namespace Marlin.Core
 
         private void Next(HttpListenerContext context)
         {
-            var contentType = ContentType.TextPlain;
+            var contentType = ContentType.ApplicationJson;
             var statusCode = StatusCodes.Status200Ok;
             var contentEncoding = Encoding.UTF8;
             byte[] buffer;
