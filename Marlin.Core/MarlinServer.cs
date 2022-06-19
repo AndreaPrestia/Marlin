@@ -396,7 +396,7 @@ namespace Marlin.Core
             && x.Key != "iat"
             && x.Key != "jti").ToDictionary(i => i.Key, i => i.Value);
 
-            if (claims == null || claims.Count == 0)
+            if (claims == null || claims.Count() == 0)
             {
                 throw new SecurityException(Messages.TokenInvalidClaims);
             }
