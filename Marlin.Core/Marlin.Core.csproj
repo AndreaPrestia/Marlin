@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="MarlinMiddleware.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="C:\Users\andre\.nuget\packages\nlog.config\4.7.11\contentFiles\any\any\NLog.config" />
   </ItemGroup>
 
