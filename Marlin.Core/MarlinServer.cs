@@ -24,6 +24,7 @@ namespace Marlin.Core
         private readonly IServiceProvider _serviceProvider;
         private readonly MarlinConfiguration _configuration;
         private readonly IEventHandler _eventHandler;
+        private HttpListener _listener;
 
         public MarlinServer([NotNull] IServiceProvider serviceProvider)
         {
@@ -42,34 +43,58 @@ namespace Marlin.Core
             }
         }
 
-        internal async Task HandleIncomingConnections(HttpListener listener)
+        internal void Start()
         {
-            while (true)
+            _listener = new HttpListener();
+            _listener.Prefixes.Add($"http://*:{_configuration.Port}/");
+            _listener.Start();
+            Receive();
+        }
+
+        internal void Stop()
+        {
+            _listener.Stop();
+        }
+
+        private void Receive()
+        {
+            _listener.BeginGetContext(new AsyncCallback(ListenerCallback), _listener);
+        }
+
+        private void ListenerCallback(IAsyncResult result)
+        {
+            if (_listener.IsListening)
             {
-                // Will wait here until we hear from a connection
-                var context = await listener.GetContextAsync();
+                var context = _listener.EndGetContext(result);
 
-                var contentType = ContentType.TextPlain;
-                var statusCode = StatusCodes.Status200Ok;
-                var contentEncoding = Encoding.UTF8;
-                byte[] buffer;
+                Next(context);
 
-                if (context.Request.Url != null && context.Request.Url.LocalPath.Equals("/"))
-                {
-                    buffer = Encoding.UTF8.GetBytes("Server is up and running :)");
+                Receive();
+            }
+        }
 
-                    context.Response.ContentType = contentType;
-                    context.Response.StatusCode = statusCode;
-                    context.Response.ContentEncoding = contentEncoding;
-                    context.Response.ContentLength64 = buffer.LongLength;
+        private void Next(HttpListenerContext context)
+        {
+            var contentType = ContentType.TextPlain;
+            var statusCode = StatusCodes.Status200Ok;
+            var contentEncoding = Encoding.UTF8;
+            byte[] buffer;
 
-                    await context.Response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
+            if (context.Request.Url != null && context.Request.Url.LocalPath.Equals("/"))
+            {
+                buffer = Encoding.UTF8.GetBytes("Server is up and running :)");
 
-                    context.Response.Close();
+                context.Response.ContentType = contentType;
+                context.Response.StatusCode = statusCode;
+                context.Response.ContentEncoding = contentEncoding;
+                context.Response.ContentLength64 = buffer.LongLength;
 
-                    continue;
-                }
+                context.Response.OutputStream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false).GetAwaiter().GetResult();
 
+                context.Response.Close();
+            }
+            else
+            {
                 var timeKeeper = new TimeKeeper();
 
                 string content = null;
@@ -146,7 +171,7 @@ namespace Marlin.Core
                     context.Response.ContentEncoding = contentEncoding;
                     context.Response.ContentLength64 = buffer.LongLength;
 
-                    await context.Response.OutputStream.WriteAsync(buffer, 0, buffer.Length);
+                    context.Response.OutputStream.WriteAsync(buffer, 0, buffer.Length).ConfigureAwait(false).GetAwaiter().GetResult();
 
                     context.Response.Close();
                 }

@@ -15,7 +15,6 @@ namespace Marlin.Core
         private const string CertificateName = "Marlin";
         private const string SafePassword = "MarlinServerCert666%$";
 
-        private readonly HttpListener _httpListener;
         private readonly MarlinServer _httpServer;
 
         private MarlinBuilder()
@@ -44,7 +43,6 @@ namespace Marlin.Core
             var serviceProvider = services.BuildServiceProvider();
 
             _httpServer = new MarlinServer(serviceProvider);
-            _httpListener = new HttpListener();
         }
 
         public static MarlinBuilder Init()
@@ -61,24 +59,13 @@ namespace Marlin.Core
 
         public MarlinBuilder StartListen()
         {
-            _httpListener.Prefixes.Add("http://*:8089/");
+            _httpServer.Start();
 
-            if (_isSecure)
-                _httpListener.Prefixes.Add("https://*:8443/");
-
-            _httpListener.Start();
             return this;
         }
-
-        public MarlinBuilder HandleRequests()
-        {
-            _httpServer.HandleIncomingConnections(_httpListener).ConfigureAwait(false).GetAwaiter().GetResult();
-            return this;
-        }
-
         public MarlinBuilder StopListen()
         {
-            _httpListener.Close();
+            _httpServer.Stop();
             return this;
         }
 

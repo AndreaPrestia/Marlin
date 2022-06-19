@@ -5,14 +5,30 @@ namespace Marlin.Test
 {
     class Program
     {
+        private static bool _keepRunning = true;
+
         static void Main(string[] args)
         {
+            MarlinBuilder marlinBuilder = null;
+
             try
             {
-                var marlinBuilder = MarlinBuilder.Init().UseHttps().StartListen().HandleRequests().Build();
+                Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
+                {
+                    e.Cancel = true;
+                    _keepRunning = false;
+                };
+
+                marlinBuilder = MarlinBuilder.Init().StartListen().Build();
+
+                while (_keepRunning) { }
+
+                marlinBuilder.StopListen();
             }
             catch (Exception ex)
             {
+                marlinBuilder?.StopListen();
+
                 Console.WriteLine(ex);
                 Console.ReadLine();
             }
