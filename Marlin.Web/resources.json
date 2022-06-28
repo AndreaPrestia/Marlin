@@ -1,0 +1,15 @@
+[
+  {
+    "url": "/free",
+    "method": "get",
+    "type": "Marlin.Web.Api.Free"
+  },
+  {
+    "url": "/secured",
+    "method": "get",
+    "type": "Marlin.Web.Api.Secured",
+    "claims": {
+      "roles": "admin"
+    }
+  }
+]

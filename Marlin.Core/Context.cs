@@ -5,22 +5,26 @@ using Marlin.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Net;
 using System.Security;
+using Microsoft.AspNetCore.Http;
 
 namespace Marlin.Core
 {
     public class Context
     {
-        [ThreadStatic]
-        private static Context _context;
+        [ThreadStatic] private static Context _context;
 
         private readonly MarlinConfiguration _marlinConfiguration;
-
+        
         private Context()
         {
             string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
-            var configBuilder = new ConfigurationBuilder().AddJsonFile(!string.IsNullOrEmpty(environment) ? $"appsettings.{environment}.json" : "appsettings.json");
+            var configBuilder = new ConfigurationBuilder().AddJsonFile(!string.IsNullOrEmpty(environment)
+                ? $"appsettings.{environment}.json"
+                : "appsettings.json");
             var configuration = configBuilder.Build();
 
             _marlinConfiguration = configuration.GetSection("Marlin").Get<MarlinConfiguration>();
@@ -29,9 +33,19 @@ namespace Marlin.Core
             {
                 throw new ArgumentNullException(nameof(_marlinConfiguration));
             }
+
+            var resourceBuilder = new ConfigurationBuilder().AddJsonFile(!string.IsNullOrEmpty(environment)
+                ? $"resources.{environment}.json"
+                : "resources.json");
+
+            var resourceBuild = resourceBuilder.Build();
+
+            Resources = resourceBuild.Get<List<Resource>>();
         }
 
         public Dictionary<string, object> Claims { get; private set; }
+
+        public List<Resource> Resources { get; private set; }
 
         public static T GetClaim<T>(string name)
         {
@@ -78,9 +92,31 @@ namespace Marlin.Core
 
         public static bool HasClaim(string name) => _context.Claims.ContainsKey(name.ToLowerInvariant().Trim());
 
+        public static Resource GetResource(string url, string method)
+        {
+            if (url == null) throw new ArgumentNullException(nameof(url));
+            
+            if (method == null) throw new ArgumentNullException(nameof(method));
+            
+            var resources = _context.Resources.Where(x => x.Url?.ToLower() == url.ToLower() && x.Method?.ToUpper() == method.ToUpper()).ToList();
+           
+            if (resources == null || resources.Count == 0)
+            {
+                throw new EntryPointNotFoundException(string.Format(Messages.ApiNotFound, url, method));
+            }
+
+            if (resources.Count > 1)
+            {
+                throw new HttpListenerException(StatusCodes.Status409Conflict, (string.Format(Messages.ApiConflict, url, method)));
+            }
+
+            return resources.FirstOrDefault();
+        }
+
         public void Reset()
         {
             this.Claims = null;
+            this.Resources = null;
         }
 
         public string Jwt
@@ -95,7 +131,9 @@ namespace Marlin.Core
                 var tokenBuilder = JwtBuilder.Create()
                     .WithAlgorithm(new HMACSHA256Algorithm())
                     .WithSecret(_marlinConfiguration.JwtConfiguration.JwtSecret)
-                    .AddClaim("exp", DateTimeOffset.UtcNow.AddHours(_marlinConfiguration.JwtConfiguration.JwtDurationHours).ToUnixTimeSeconds())
+                    .AddClaim("exp",
+                        DateTimeOffset.UtcNow.AddHours(_marlinConfiguration.JwtConfiguration.JwtDurationHours)
+                            .ToUnixTimeSeconds())
                     .AddClaim("aud", _marlinConfiguration.JwtConfiguration.JwtAudience)
                     .AddClaim("iss", _marlinConfiguration.JwtConfiguration.JwtIssuer)
                     .AddClaim("iat", DateTimeOffset.UtcNow.ToUnixTimeSeconds());

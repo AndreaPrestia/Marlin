@@ -1,6 +1,5 @@
 ﻿using JWT.Algorithms;
 using JWT.Builder;
-using Marlin.Core.Attributes;
 using Marlin.Core.Common;
 using Marlin.Core.Entities;
 using Marlin.Core.Interfaces;
@@ -12,7 +11,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Reflection;
 using System.Security;
 using System.Threading.Tasks;
 
@@ -25,13 +23,14 @@ namespace Marlin.Core
         private readonly IServiceProvider _serviceProvider;
         private readonly IEventHandler _loggerHandler;
 
-        public MarlinMiddleware(RequestDelegate next, MarlinConfiguration configuration, IServiceProvider serviceProvider)
+        public MarlinMiddleware(RequestDelegate next, MarlinConfiguration configuration,
+            IServiceProvider serviceProvider)
         {
             _next = next ?? throw new ArgumentNullException(nameof(next));
 
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
-            if(configuration.JwtConfiguration == null)
+            if (configuration.JwtConfiguration == null)
             {
                 throw new ArgumentNullException(nameof(configuration.JwtConfiguration));
             }
@@ -67,7 +66,8 @@ namespace Marlin.Core
 
                 if (context.Request.ContentType != contentType)
                 {
-                    throw new InvalidOperationException(string.Format(Messages.InvalidContentType, context.Request.ContentType, contentType));
+                    throw new InvalidOperationException(string.Format(Messages.InvalidContentType,
+                        context.Request.ContentType, contentType));
                 }
 
                 if (context.Request.Path.Equals("/") || context.Request.Path.Equals("/favicon.ico"))
@@ -78,7 +78,7 @@ namespace Marlin.Core
                 {
                     requestBody = new StreamReader(context.Request.Body).ReadToEndAsync().Result;
 
-                    var apiOutput = Process(new ApiInput(context), requestBody);
+                    var apiOutput = Process(new ApiInput(context, requestBody));
 
                     contentType = apiOutput.ContentType;
                     statusCode = apiOutput.StatusCode;
@@ -117,7 +117,9 @@ namespace Marlin.Core
                     //logger service, write event
                     _loggerHandler?.WriteEvent(new Entities.Event()
                     {
-                        Level = string.IsNullOrEmpty(message) ? EventLevels.Info.ToString() : EventLevels.Error.ToString(),
+                        Level = string.IsNullOrEmpty(message)
+                            ? EventLevels.Info.ToString()
+                            : EventLevels.Error.ToString(),
                         Claims = Context.Current.Claims,
                         Protocol = context.Request.Protocol,
                         Url = context.Request.Path,
@@ -139,16 +141,14 @@ namespace Marlin.Core
 
                 await context.Response.WriteAsync(content);
             }
-
         }
 
-        private ApiOutput Process(ApiInput input, string body)
+        private ApiOutput Process(ApiInput input)
         {
             if (input == null)
             {
                 throw new ArgumentNullException(nameof(input));
             }
-
 
             if (string.IsNullOrEmpty(input.Url))
             {
@@ -160,7 +160,9 @@ namespace Marlin.Core
                 throw new ArgumentNullException(nameof(input.Method));
             }
 
-            List<ApiHandler> apiHandlers = FindApiHandlers(input);
+            var resource = Context.GetResource(input.Url, input.Method);
+
+            var apiHandlers = FindApiHandlers(resource);
 
             if (apiHandlers == null || apiHandlers.Count == 0)
             {
@@ -169,7 +171,8 @@ namespace Marlin.Core
 
             if (apiHandlers.Count > 1)
             {
-                throw new HttpListenerException(StatusCodes.Status409Conflict, (string.Format(Messages.ApiConflict, input.Url, input.Method)));
+                throw new HttpListenerException(StatusCodes.Status409Conflict,
+                    (string.Format(Messages.ApiConflict, input.Url, input.Method)));
             }
 
             var apiHandler = apiHandlers.FirstOrDefault();
@@ -179,86 +182,18 @@ namespace Marlin.Core
                 throw new EntryPointNotFoundException(string.Format(Messages.ApiNotFound, input.Url, input.Method));
             }
 
-            var api = apiHandler.GetType().GetMethods().Where(t => t.GetCustomAttributes<ApiRoute>().Any(x => x.Url == input.Url && x.Method == input.Method)).Select(x => x).FirstOrDefault();
-
-            if (api == null)
+            if (resource.Claims != null && resource.Claims.Any())
             {
-                throw new EntryPointNotFoundException(string.Format(Messages.ApiNotFound, input.Url, input.Method));
+                ManageSecuredAttributes(input, resource);
             }
 
-            ManageSecuredAttributes(input, api);
-
-            object[] args = GetApiArguments(input, body, api);
-
-            var apiOutput = (ApiOutput)api.Invoke(apiHandler, args);
+            var apiOutput = (ApiOutput)apiHandler.Process(input);
 
             return apiOutput;
         }
 
-        private static object[] GetApiArguments(ApiInput input, string body, MethodInfo api)
+        private void ManageSecuredAttributes(ApiInput input, Resource resource)
         {
-            var parameters = api.GetParameters().Where(x => x.GetCustomAttribute<ApiParameter>() != null || x.GetCustomAttribute<ApiBody>() != null || x.GetCustomAttribute<ApiHeader>() != null).ToArray();
-
-            var args = new object[parameters.Length];
-
-            if (parameters.Length == 0)
-            {
-                return args;
-            }
-
-            if (parameters.Any(x => x.GetCustomAttributes<ApiBody>().Count() > 1))
-            {
-                throw new ArgumentException(Messages.ApiBodyOnlyOne);
-            }
-
-            for (var i = 0; i < parameters.Length; i++)
-            {
-                var type = parameters[i].ParameterType;
-
-                object value;
-
-                if (parameters[i].GetCustomAttribute<ApiParameter>() != null)
-                {
-                    value = input.Context.Request.Query[parameters[i].Name].FirstOrDefault();
-
-                    if (value == null && !parameters[i].HasDefaultValue)
-                    {
-                        throw new ArgumentException(string.Format(Messages.ParameterNotProvided, parameters[i].Name));
-                    }
-
-                    args[i] = Convert.ChangeType(value, type);
-                }
-                else if (parameters[i].GetCustomAttribute<ApiBody>() != null)
-                {
-                    value = JsonConvert.DeserializeObject(body, type);
-
-                    args[i] = value ?? throw new ArgumentException(string.Format(Messages.EntityNotProvided, parameters[i].Name));
-                }
-                else if (parameters[i].GetCustomAttribute<ApiHeader>() != null)
-                {
-                    value = input.Context.Request.Headers[parameters[i].Name].FirstOrDefault();
-
-                    if (value == null && !parameters[i].HasDefaultValue)
-                    {
-                        throw new ArgumentException(string.Format(Messages.HeaderNotProvided, parameters[i].Name));
-                    }
-
-                    args[i] = Convert.ChangeType(value, type);
-                }
-            }
-
-            return args;
-        }
-
-        private void ManageSecuredAttributes(ApiInput input, MethodInfo api)
-        {
-            var securedAttributes = api.GetCustomAttributes<Secured>().ToList();
-
-            if (!securedAttributes.Any())
-            {
-                return;
-            }
-
             if (Context.Current == null || !Context.IsLoaded)
             {
                 this.LoadContext(input.Context);
@@ -269,60 +204,61 @@ namespace Marlin.Core
                 throw new SecurityException(Messages.Unauthorized);
             }
 
-            foreach (var secured in securedAttributes)
+            foreach (var claim in resource.Claims)
             {
-                if (!Context.HasClaim(secured.Claim))
+                if (!Context.HasClaim(claim.Key))
                 {
-                    throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url, input.Method));
+                    throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url,
+                        input.Method));
                 }
 
-                if (secured.Claim.Equals("*"))
+                if (claim.Value.Equals("*"))
                 {
                     continue;
                 }
 
-                var claimContent = Context.GetClaim<string>(secured.Claim);
+                var claimContent = Context.GetClaim<string>(claim.Key);
 
-                if (string.IsNullOrEmpty(claimContent) || !secured.Value.Contains(claimContent))
+                if (string.IsNullOrEmpty(claimContent) || !claim.Value.ToString().Contains(claimContent))
                 {
-                    throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url, input.Method));
+                    throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url,
+                        input.Method));
                 }
             }
         }
 
-        private List<ApiHandler> FindApiHandlers(ApiInput input)
+        private List<ApiHandler> FindApiHandlers(Resource resource)
         {
-            var friendlyName = AppDomain.CurrentDomain.FriendlyName;
+            return AppDomain.CurrentDomain.GetAssemblies()
+                .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
+                    t.IsSubclassOf(typeof(ApiHandler))
+                    && !t.IsAbstract && !t.IsInterface).Where(tp => tp.FullName == resource.Type)
+                .Select(t =>
+                {
+                    var firstConstructor = t.GetConstructors().FirstOrDefault();
 
-            return AppDomain.CurrentDomain.GetAssemblies().First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
-          t.IsSubclassOf(typeof(ApiHandler))
-          && !t.IsAbstract && !t.IsInterface).Where(tp => tp.GetMethods().Any(n => n.GetCustomAttributes<ApiRoute>().Any(x => x.Url == input.Url && x.Method == input.Method)))
-              .Select(t =>
-              {
-                  var firstConstructor = t.GetConstructors().FirstOrDefault();
+                    var parameters = new List<object>();
 
-                  var parameters = new List<object>();
+                    if (firstConstructor == null)
+                    {
+                        throw new NotImplementedException(string.Format(Messages.NotImplementedConstructor, t.Name));
+                    }
 
-                  if (firstConstructor == null)
-                  {
-                      throw new NotImplementedException(string.Format(Messages.NotImplementedConstructor, t.Name));
-                  }
+                    foreach (var param in firstConstructor.GetParameters())
+                    {
+                        using var serviceScope = _serviceProvider.CreateScope();
+                        var provider = serviceScope.ServiceProvider;
 
-                  foreach (var param in firstConstructor.GetParameters())
-                  {
-                      using var serviceScope = _serviceProvider.CreateScope();
-                      var provider = serviceScope.ServiceProvider;
+                        var service = provider.GetService(param.ParameterType);
 
-                      var service = provider.GetService(param.ParameterType);
+                        parameters.Add(service);
+                    }
 
-                      parameters.Add(service);
-                  }
-
-                  return (ApiHandler)Activator.CreateInstance(t, parameters.ToArray());
-              }).ToList();
+                    return (ApiHandler)Activator.CreateInstance(t, parameters.ToArray());
+                }).ToList();
         }
 
-        public void SetContext(Dictionary<string, object> claims)
+        private static void SetContext(Dictionary<string, object> claims)
         {
             foreach (var claim in claims)
             {
@@ -342,11 +278,11 @@ namespace Marlin.Core
             }
 
             var jwtContent = JwtBuilder.Create()
-    .WithAlgorithm(new HMACSHA256Algorithm())
-    .WithSecret(_configuration.JwtConfiguration.JwtSecret)
-    .MustVerifySignature()
-    .WithVerifySignature(true)
-    .Decode<Dictionary<string, object>>(tokenString);
+                .WithAlgorithm(new HMACSHA256Algorithm())
+                .WithSecret(_configuration.JwtConfiguration.JwtSecret)
+                .MustVerifySignature()
+                .WithVerifySignature(true)
+                .Decode<Dictionary<string, object>>(tokenString);
 
             if (jwtContent == null)
             {
@@ -354,11 +290,11 @@ namespace Marlin.Core
             }
 
             var claims = jwtContent.Where(x =>
-            x.Key != "exp"
-            && x.Key != "iss"
-            && x.Key != "aud"
-            && x.Key != "iat"
-            && x.Key != "jti").ToDictionary(i => i.Key, i => i.Value);
+                x.Key != "exp"
+                && x.Key != "iss"
+                && x.Key != "aud"
+                && x.Key != "iat"
+                && x.Key != "jti").ToDictionary(i => i.Key, i => i.Value);
 
             if (claims == null || claims.Count == 0)
             {
@@ -386,7 +322,8 @@ namespace Marlin.Core
 
             var hasAudience = jwtContent.TryGetValue("aud", out object audience);
 
-            if (!hasAudience && (audience == null || !audience.ToString().Equals(_configuration.JwtConfiguration.JwtAudience)))
+            if (!hasAudience && (audience == null ||
+                                 !audience.ToString().Equals(_configuration.JwtConfiguration.JwtAudience)))
             {
                 throw new SecurityException(Messages.TokenInvalidAud);
             }
