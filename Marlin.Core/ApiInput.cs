@@ -29,7 +29,7 @@ namespace Marlin.Core
             return entity;
         }
 
-        public T GetHeader<T>(string name, bool required = false)
+        public T GetHeader<T>(string name, bool required = true)
         {
             if (name == null) throw new ArgumentNullException(nameof(name));
             
@@ -43,7 +43,7 @@ namespace Marlin.Core
             return (T)Convert.ChangeType(value, typeof(T));
         }
         
-        public T GetQueryParameter<T>(string name, bool required = false)
+        public T GetQueryParameter<T>(string name, bool required = true)
         {
             if (name == null) throw new ArgumentNullException(nameof(name));
             

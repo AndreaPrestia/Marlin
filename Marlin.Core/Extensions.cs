@@ -18,7 +18,7 @@ namespace Marlin.Core
         /// <exception cref="ArgumentNullException"></exception>
         public static void AddMarlin(this IServiceCollection services)
         {
-            string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
             var configBuilder = new ConfigurationBuilder().AddJsonFile(!string.IsNullOrEmpty(environment) ? $"appsettings.{environment}.json" : "appsettings.json");
             var configuration = configBuilder.Build();
