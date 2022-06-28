@@ -15,6 +15,7 @@ namespace Marlin.Core
         /// Extension that add cors, cookie policy options
         /// </summary>
         /// <param name="services"></param>
+        /// <exception cref="ArgumentNullException"></exception>
         public static void AddMarlin(this IServiceCollection services)
         {
             string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
@@ -51,6 +52,7 @@ namespace Marlin.Core
         /// Extension that use cors with origins from app.settings.json, use cookie policy and adds the middleware
         /// </summary>
         /// <param name="builder"></param>
+        /// <exception cref="ArgumentNullException"></exception>
         public static void UseMarlin(this IApplicationBuilder builder)
         {
             var configuration = builder.ApplicationServices.GetService<MarlinConfiguration>();

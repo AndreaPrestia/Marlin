@@ -33,19 +33,11 @@ namespace Marlin.Core
             {
                 throw new ArgumentNullException(nameof(_marlinConfiguration));
             }
-
-            var resourceBuilder = new ConfigurationBuilder().AddJsonFile(!string.IsNullOrEmpty(environment)
-                ? $"resources.{environment}.json"
-                : "resources.json");
-
-            var resourceBuild = resourceBuilder.Build();
-
-            Resources = resourceBuild.Get<List<Resource>>();
         }
 
         public Dictionary<string, object> Claims { get; private set; }
 
-        public List<Resource> Resources { get; private set; }
+        private List<Resource> _resources;
 
         public static T GetClaim<T>(string name)
         {
@@ -97,8 +89,17 @@ namespace Marlin.Core
             if (url == null) throw new ArgumentNullException(nameof(url));
             
             if (method == null) throw new ArgumentNullException(nameof(method));
+
+            if (_context._resources == null || !_context._resources.Any())
+            {
+                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+
+                _context._resources = new ConfigurationBuilder().AddJsonFile(!string.IsNullOrEmpty(environment)
+                    ? $"resources.{environment}.json"
+                    : "resources.json").Build().Get<List<Resource>>();
+            }
             
-            var resources = _context.Resources.Where(x => x.Url?.ToLower() == url.ToLower() && x.Method?.ToUpper() == method.ToUpper()).ToList();
+            var resources = _context._resources.Where(x => x.Url?.ToLower() == url.ToLower() && x.Method?.ToUpper() == method.ToUpper()).ToList();
            
             if (resources == null || resources.Count == 0)
             {
@@ -116,7 +117,7 @@ namespace Marlin.Core
         public void Reset()
         {
             this.Claims = null;
-            this.Resources = null;
+            this._resources = null;
         }
 
         public string Jwt
