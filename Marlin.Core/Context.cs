@@ -5,10 +5,12 @@ using Marlin.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security;
 using Microsoft.AspNetCore.Http;
+using Newtonsoft.Json;
 
 namespace Marlin.Core
 {
@@ -94,9 +96,11 @@ namespace Marlin.Core
             {
                 var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
-                _context._resources = new ConfigurationBuilder().AddJsonFile(!string.IsNullOrEmpty(environment)
+                var resourcesContent = File.ReadAllText( Path.Combine(Directory.GetCurrentDirectory(), !string.IsNullOrEmpty(environment)
                     ? $"resources.{environment}.json"
-                    : "resources.json").Build().Get<List<Resource>>();
+                    : "resources.json"));
+
+                _context._resources = JsonConvert.DeserializeObject<List<Resource>>(resourcesContent);
             }
             
             var resources = _context._resources.Where(x => x.Url?.ToLower() == url.ToLower() && x.Method?.ToUpper() == method.ToUpper()).ToList();

@@ -6,7 +6,7 @@
   },
   {
     "url": "/jwt",
-    "method": "Jwt",
+    "method": "GET",
     "type": "Marlin.Web.Api.Jwt"
   },
   {
