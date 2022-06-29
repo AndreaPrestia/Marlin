@@ -19,7 +19,7 @@ namespace Marlin.Core
         [ThreadStatic] private static Context _context;
 
         private readonly MarlinConfiguration _marlinConfiguration;
-        
+
         private Context()
         {
             string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
@@ -38,8 +38,6 @@ namespace Marlin.Core
         }
 
         public Dictionary<string, object> Claims { get; private set; }
-
-        private List<Resource> _resources;
 
         public static T GetClaim<T>(string name)
         {
@@ -89,22 +87,20 @@ namespace Marlin.Core
         public static Resource GetResource(string url, string method)
         {
             if (url == null) throw new ArgumentNullException(nameof(url));
-            
+
             if (method == null) throw new ArgumentNullException(nameof(method));
 
-            if (_context._resources == null || !_context._resources.Any())
-            {
-                var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
-                var resourcesContent = File.ReadAllText( Path.Combine(Directory.GetCurrentDirectory(), !string.IsNullOrEmpty(environment)
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+
+            var resourcesContent = File.ReadAllText(Path.Combine(Directory.GetCurrentDirectory(),
+                !string.IsNullOrEmpty(environment)
                     ? $"resources.{environment}.json"
                     : "resources.json"));
 
-                _context._resources = JsonConvert.DeserializeObject<List<Resource>>(resourcesContent);
-            }
-            
-            var resources = _context._resources.Where(x => x.Url?.ToLower() == url.ToLower() && x.Method?.ToUpper() == method.ToUpper()).ToList();
-           
+            var resources = JsonConvert.DeserializeObject<List<Resource>>(resourcesContent)?.Where(x =>
+                x.Url?.ToLower() == url.ToLower() && x.Method?.ToUpper() == method.ToUpper()).ToList();
+
             if (resources == null || resources.Count == 0)
             {
                 throw new EntryPointNotFoundException(string.Format(Messages.ApiNotFound, url, method));
@@ -112,7 +108,8 @@ namespace Marlin.Core
 
             if (resources.Count > 1)
             {
-                throw new HttpListenerException(StatusCodes.Status409Conflict, (string.Format(Messages.ApiConflict, url, method)));
+                throw new HttpListenerException(StatusCodes.Status409Conflict,
+                    (string.Format(Messages.ApiConflict, url, method)));
             }
 
             return resources.FirstOrDefault();
@@ -121,7 +118,6 @@ namespace Marlin.Core
         public void Reset()
         {
             this.Claims = null;
-            this._resources = null;
         }
 
         public string Jwt
