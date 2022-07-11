@@ -1,18 +1,15 @@
 ﻿using JWT.Algorithms;
 using JWT.Builder;
-using Marlin.Core.Common;
 using Marlin.Core.Entities;
-using Marlin.Core.Interfaces;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Security;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Marlin.Core
 {
@@ -20,11 +17,10 @@ namespace Marlin.Core
     {
         private readonly MarlinConfiguration _configuration;
         private readonly RequestDelegate _next;
-        private readonly IServiceProvider _serviceProvider;
-        private readonly IEventHandler _loggerHandler;
+        private readonly ILogger<MarlinMiddleware> _logger;
 
         public MarlinMiddleware(RequestDelegate next, MarlinConfiguration configuration,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider, ILogger<MarlinMiddleware> logger)
         {
             _next = next ?? throw new ArgumentNullException(nameof(next));
 
@@ -35,25 +31,14 @@ namespace Marlin.Core
                 throw new ArgumentNullException(nameof(configuration.JwtConfiguration));
             }
 
-            _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-
-            if (_configuration.EventLoggerEnabled)
-            {
-                _loggerHandler = serviceProvider.GetService<IEventHandler>();
-            }
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task Invoke(HttpContext context)
         {
-            string content = null;
-            string message = null;
-            string requestBody = null;
             var contentType = ContentType.TextPlain;
-            var statusCode = StatusCodes.Status200OK;
-
-            var timeKeeper = new TimeKeeper();
-
-            Console.WriteLine($"Request started at {DateTime.UtcNow}");
+            
+            _logger.LogDebug($"Request started at {DateTime.UtcNow}");
 
             try
             {
@@ -64,35 +49,23 @@ namespace Marlin.Core
                     context.Request.ContentType = contentType;
                 }
 
-                if (context.Request.ContentType != contentType)
+                var resource = Context.GetResource(context.Request.Path, context.Request.Method);
+
+                if (resource.Claims != null && resource.Claims.Any())
                 {
-                    throw new InvalidOperationException(string.Format(Messages.InvalidContentType,
-                        context.Request.ContentType, contentType));
+                    ManageResource(context, resource);
                 }
 
-                if (context.Request.Path.Equals("/") || context.Request.Path.Equals("/favicon.ico"))
-                {
-                    content = "Server is up and running :)";
-                }
-                else
-                {
-                    requestBody = new StreamReader(context.Request.Body).ReadToEndAsync().Result;
-
-                    var apiOutput = Process(new ApiInput(context, requestBody));
-
-                    contentType = apiOutput.ContentType;
-                    statusCode = apiOutput.StatusCode;
-                    content = apiOutput.Response;
-                }
+                await _next.Invoke(context);
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                _logger.LogError(e.Message);
 
-                statusCode = StatusCodes.Status500InternalServerError;
+                var statusCode = StatusCodes.Status500InternalServerError;
                 contentType = ContentType.ApplicationJson;
-                message = _configuration.PropagateApplicationError ? e.Message : Messages.GenericFailure;
-                content = JsonConvert.SerializeObject(new { Message = message });
+                var message = _configuration.PropagateApplicationError ? e.Message : Messages.GenericFailure;
+                var content = JsonConvert.SerializeObject(new { Message = message });
 
                 statusCode = e switch
                 {
@@ -103,100 +76,19 @@ namespace Marlin.Core
                     HttpListenerException exception => exception.ErrorCode,
                     _ => StatusCodes.Status500InternalServerError
                 };
-            }
-            finally
-            {
-                Console.WriteLine($"ContentType: {contentType}");
-                Console.WriteLine($"Content: {content}");
-                Console.WriteLine($"statusCode: {statusCode}");
-
-                var ms = timeKeeper.Stop().TotalMilliseconds;
-
-                if (_loggerHandler != null)
-                {
-                    //logger service, write event
-                    _loggerHandler?.WriteEvent(new Entities.Event()
-                    {
-                        Level = string.IsNullOrEmpty(message)
-                            ? EventLevels.Info.ToString()
-                            : EventLevels.Error.ToString(),
-                        Claims = Context.Current.Claims,
-                        Protocol = context.Request.Protocol,
-                        Url = context.Request.Path,
-                        Method = context.Request.Method,
-                        Request = context.Request.QueryString.Value,
-                        Response = content,
-                        Host = context.Request.Host.Value,
-                        Client = context.Connection.RemoteIpAddress.ToString(),
-                        Payload = requestBody,
-                        Message = message,
-                        Milliseconds = ms
-                    });
-                }
-
-                Console.WriteLine($"Request completed in {ms} ms");
-
+                
                 context.Response.ContentType = contentType;
                 context.Response.StatusCode = statusCode;
 
                 await context.Response.WriteAsync(content);
             }
         }
-
-        private ApiOutput Process(ApiInput input)
-        {
-            if (input == null)
-            {
-                throw new ArgumentNullException(nameof(input));
-            }
-
-            if (string.IsNullOrEmpty(input.Url))
-            {
-                throw new ArgumentNullException(nameof(input.Url));
-            }
-
-            if (string.IsNullOrEmpty(input.Method))
-            {
-                throw new ArgumentNullException(nameof(input.Method));
-            }
-
-            var resource = Context.GetResource(input.Url, input.Method);
-
-            var apiHandlers = FindApiHandlers(resource);
-
-            if (apiHandlers == null || apiHandlers.Count == 0)
-            {
-                throw new EntryPointNotFoundException(string.Format(Messages.ApiNotFound, input.Url, input.Method));
-            }
-
-            if (apiHandlers.Count > 1)
-            {
-                throw new HttpListenerException(StatusCodes.Status409Conflict,
-                    (string.Format(Messages.ApiConflict, input.Url, input.Method)));
-            }
-
-            var apiHandler = apiHandlers.FirstOrDefault();
-
-            if (apiHandler == null)
-            {
-                throw new EntryPointNotFoundException(string.Format(Messages.ApiNotFound, input.Url, input.Method));
-            }
-
-            if (resource.Claims != null && resource.Claims.Any())
-            {
-                ManageSecuredAttributes(input, resource);
-            }
-
-            var apiOutput = (ApiOutput)apiHandler.Process(input);
-
-            return apiOutput;
-        }
-
-        private void ManageSecuredAttributes(ApiInput input, Resource resource)
+     
+        private void ManageResource(HttpContext context, Resource resource)
         {
             if (Context.Current == null || !Context.IsLoaded)
             {
-                this.LoadContext(input.Context);
+                this.LoadContext(context);
             }
 
             if (Context.Current == null || !Context.IsLoaded)
@@ -208,8 +100,9 @@ namespace Marlin.Core
             {
                 if (!Context.HasClaim(claim.Key))
                 {
-                    throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url,
-                        input.Method));
+                    throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim,
+                        context.Request.Path,
+                        context.Request.Method));
                 }
 
                 if (claim.Value.Equals("*"))
@@ -221,41 +114,11 @@ namespace Marlin.Core
 
                 if (string.IsNullOrEmpty(claimContent) || !claim.Value.ToString().Contains(claimContent))
                 {
-                    throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url,
-                        input.Method));
+                    throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim,
+                        context.Request.Path,
+                        context.Request.Method));
                 }
             }
-        }
-
-        private List<ApiHandler> FindApiHandlers(Resource resource)
-        {
-            return AppDomain.CurrentDomain.GetAssemblies()
-                .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
-                    t.IsSubclassOf(typeof(ApiHandler))
-                    && !t.IsAbstract && !t.IsInterface).Where(tp => tp.FullName == resource.Type)
-                .Select(t =>
-                {
-                    var firstConstructor = t.GetConstructors().FirstOrDefault();
-
-                    var parameters = new List<object>();
-
-                    if (firstConstructor == null)
-                    {
-                        throw new NotImplementedException(string.Format(Messages.NotImplementedConstructor, t.Name));
-                    }
-
-                    foreach (var param in firstConstructor.GetParameters())
-                    {
-                        using var serviceScope = _serviceProvider.CreateScope();
-                        var provider = serviceScope.ServiceProvider;
-
-                        var service = provider.GetService(param.ParameterType);
-
-                        parameters.Add(service);
-                    }
-
-                    return (ApiHandler)Activator.CreateInstance(t, parameters.ToArray());
-                }).ToList();
         }
 
         private static void SetContext(Dictionary<string, object> claims)
