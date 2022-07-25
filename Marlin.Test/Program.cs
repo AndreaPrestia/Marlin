@@ -3,17 +3,17 @@ using System;
 
 namespace Marlin.Test
 {
-    class Program
+    static class Program
     {
         private static bool _keepRunning = true;
 
-        static void Main(string[] args)
+        static void Main()
         {
             MarlinBuilder marlinBuilder = null;
 
             try
             {
-                Console.CancelKeyPress += delegate (object sender, ConsoleCancelEventArgs e)
+                Console.CancelKeyPress += delegate (object _, ConsoleCancelEventArgs e)
                 {
                     e.Cancel = true;
                     _keepRunning = false;

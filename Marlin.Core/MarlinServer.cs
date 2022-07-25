@@ -1,6 +1,4 @@
-﻿using JWT.Algorithms;
-using JWT.Builder;
-using Marlin.Core.Attributes;
+﻿using Marlin.Core.Attributes;
 using Marlin.Core.Common;
 using Marlin.Core.Entities;
 using Marlin.Core.Interfaces;
@@ -15,7 +13,7 @@ using System.Net;
 using System.Reflection;
 using System.Security;
 using System.Text;
-using System.Threading.Tasks;
+using Marlin.Core.Encrypt;
 
 namespace Marlin.Core
 {
@@ -32,7 +30,7 @@ namespace Marlin.Core
 
             _configuration = (MarlinConfiguration)_serviceProvider.GetService(typeof(MarlinConfiguration));
 
-            if (_configuration.JwtConfiguration == null)
+            if (_configuration?.JwtConfiguration == null)
             {
                 throw new ArgumentNullException(nameof(_configuration.JwtConfiguration));
             }
@@ -46,7 +44,7 @@ namespace Marlin.Core
         internal void Start()
         {
             _listener = new HttpListener();
-            _listener.Prefixes.Add($"http://*:{_configuration.Port}/");
+            _listener.Prefixes.Add($"https://*:{_configuration.Port}/");
             _listener.Start();
             Receive();
         }
@@ -58,7 +56,7 @@ namespace Marlin.Core
 
         private void Receive()
         {
-            _listener.BeginGetContext(new AsyncCallback(ListenerCallback), _listener);
+            _listener.BeginGetContext(ListenerCallback, _listener);
         }
 
         private void ListenerCallback(IAsyncResult result)
@@ -147,17 +145,17 @@ namespace Marlin.Core
                     if (_eventHandler != null)
                     {
                         //logger service, write event
-                        _eventHandler?.WriteEvent(new Entities.Event()
+                        _eventHandler?.WriteEvent(new Event()
                         {
                             Level = string.IsNullOrEmpty(message) ? EventLevels.Info.ToString() : EventLevels.Error.ToString(),
                             Claims = Context.Current.Claims,
                             Protocol = context.Request.ProtocolVersion.ToString(),
-                            Url = context.Request.Url.AbsolutePath,
+                            Url = context.Request.Url?.AbsolutePath,
                             Method = context.Request.HttpMethod,
                             Request = context.Request.QueryString.ToString(),
                             Response = content,
                             Host = context.Request.UserHostName,
-                            Client = context.Request.RemoteEndPoint.Address.ToString(),
+                            Client = context.Request.RemoteEndPoint?.Address.ToString(),
                             Payload = requestBody,
                             Message = message,
                             Milliseconds = ms
@@ -255,7 +253,7 @@ namespace Marlin.Core
 
                 if (parameters[i].GetCustomAttribute<ApiParameter>() != null)
                 {
-                    value = input.Context.Request.QueryString[parameters[i].Name].FirstOrDefault();
+                    value = input.Context.Request.QueryString[parameters[i].Name]?.FirstOrDefault();
 
                     if (value == null && !parameters[i].HasDefaultValue)
                     {
@@ -272,7 +270,7 @@ namespace Marlin.Core
                 }
                 else if (parameters[i].GetCustomAttribute<ApiHeader>() != null)
                 {
-                    value = input.Context.Request.Headers[parameters[i].Name].FirstOrDefault();
+                    value = input.Context.Request.Headers[parameters[i].Name]?.FirstOrDefault();
 
                     if (value == null && !parameters[i].HasDefaultValue)
                     {
@@ -328,8 +326,6 @@ namespace Marlin.Core
 
         private List<ApiHandler> FindApiHandlers(ApiInput input)
         {
-            var friendlyName = AppDomain.CurrentDomain.FriendlyName;
-
             return AppDomain.CurrentDomain.GetAssemblies().First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
           t.IsSubclassOf(typeof(ApiHandler))
           && !t.IsAbstract && !t.IsInterface).Where(tp => tp.GetMethods().Any(n => n.GetCustomAttributes<ApiRoute>().Any(x => x.Url == input.Url && x.Method == input.Method)))
@@ -358,7 +354,7 @@ namespace Marlin.Core
               }).ToList();
         }
 
-        public void SetContext(Dictionary<string, object> claims)
+        private static void SetContext(Dictionary<string, object> claims)
         {
             foreach (var claim in claims)
             {
@@ -370,18 +366,14 @@ namespace Marlin.Core
         {
             var tokenString = context.Request.Headers[Messages.HeaderAuthorization];
 
-            Console.WriteLine($"Token received: {tokenString}");
-
             if (string.IsNullOrEmpty(tokenString))
             {
                 throw new SecurityException(Messages.TokenNotProvided);
             }
 
             var jwtContent = JwtBuilder.Create()
-    .WithAlgorithm(new HMACSHA256Algorithm())
+    .WithAlgorithm<HMACSHA256>()
     .WithSecret(_configuration.JwtConfiguration.JwtSecret)
-    .MustVerifySignature()
-    .WithVerifySignature(true)
     .Decode<Dictionary<string, object>>(tokenString);
 
             if (jwtContent == null)
@@ -396,7 +388,7 @@ namespace Marlin.Core
             && x.Key != "iat"
             && x.Key != "jti").ToDictionary(i => i.Key, i => i.Value);
 
-            if (claims == null || claims.Count() == 0)
+            if (claims == null || !claims.Any())
             {
                 throw new SecurityException(Messages.TokenInvalidClaims);
             }
@@ -413,14 +405,14 @@ namespace Marlin.Core
                 throw new SecurityException(Messages.TokenExpired);
             }
 
-            var hasIssuer = jwtContent.TryGetValue("iss", out object issuer);
+            var hasIssuer = jwtContent.TryGetValue("iss", out var issuer);
 
             if (!hasIssuer && (issuer == null || !issuer.ToString().Equals(_configuration.JwtConfiguration.JwtIssuer)))
             {
                 throw new SecurityException(Messages.TokenInvalidIss);
             }
 
-            var hasAudience = jwtContent.TryGetValue("aud", out object audience);
+            var hasAudience = jwtContent.TryGetValue("aud", out var audience);
 
             if (!hasAudience && (audience == null || !audience.ToString().Equals(_configuration.JwtConfiguration.JwtAudience)))
             {

@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Security;
+using Marlin.Core.Encrypt;
 
 namespace Marlin.Core
 {
@@ -93,7 +94,7 @@ namespace Marlin.Core
                 }
 
                 var tokenBuilder = JwtBuilder.Create()
-                    .WithAlgorithm(new HMACSHA256Algorithm())
+                    .WithAlgorithm<HMACSHA256>()
                     .WithSecret(_marlinConfiguration.JwtConfiguration.JwtSecret)
                     .AddClaim("exp", DateTimeOffset.UtcNow.AddHours(_marlinConfiguration.JwtConfiguration.JwtDurationHours).ToUnixTimeSeconds())
                     .AddClaim("aud", _marlinConfiguration.JwtConfiguration.JwtAudience)
@@ -105,7 +106,7 @@ namespace Marlin.Core
                     tokenBuilder.AddClaim(claim.Key, claim.Value);
                 }
 
-                return tokenBuilder.Encode();
+                return tokenBuilder.Encode().GetTokenString();
             }
         }
 

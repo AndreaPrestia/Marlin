@@ -1,6 +1,6 @@
 ﻿namespace Marlin.Core
 {
-    internal class Messages
+    internal static class Messages
     {
         internal const string GenericFailure = "An error has occurred :(";
         internal const string NotImplementedConstructor = "'{0}' has no implemented constructor";
@@ -19,14 +19,15 @@
         internal const string TokenInvalid = "Invalid token";
         internal const string TokenInvalidPayload = "Invalid token payload";
         internal const string TokenInvalidClaims = "Invalid token claims";
+        internal const string TokenInvalidSignature = "Invalid token signature";
         internal const string TokenExpired = "Token expired";
         internal const string TokenClaimNotProvided = "Claim '{0}' not provided";
         internal const string TokenClaimAlreadyProvided = "Claim '{0}' already provided";
         internal const string TokenInvalidIss = "Invalid token issuer";
         internal const string TokenInvalidAud = "Invalid token audience";
         internal const string TokenEnter = "Enter a valid token";
+        internal const string TokenSecretNotProvided = "Token secret not provided";
         internal const string HeaderAuthorization = "Authorization";
-        internal const string HeaderOrganization = "Organization";
         internal const string HeaderNotProvided = "Header '{0}' not provided";
         internal const string ParameterNotProvided = "Parameter '{0}' not provided";
         internal const string EntityNotProvided = "Entity '{0}' not provided";
@@ -36,6 +37,5 @@
         internal const string ContextNotLoaded = "Context is not loaded";
         internal const string InvalidContentType = "Content-Type '{0}' is not allowed. Only '{1}' allowed.";
         public const string CurrentMachineDoesNotSupportsHttpListener = "Current machine does not supports HttpListener";
-
     }
 }
