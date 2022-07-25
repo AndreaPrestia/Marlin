@@ -69,8 +69,11 @@ namespace Marlin.Core
                 .AllowCredentials());
 
             builder.UseCookiePolicy();
+            
+            builder.MapWhen(x => x.Request.Path.Equals("/"),
+                appBranch => appBranch.Run(async context => { await context.Response.WriteAsync("Server is up and running :)"); }));
 
-            builder.UseMiddleware<MarlinMiddleware>();
+            builder.UseWhen(x => !x.Request.Path.Equals("/"), appBranch => appBranch.UseMiddleware<MarlinMiddleware>());
         }
     }
 }
