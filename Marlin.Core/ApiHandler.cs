@@ -1,14 +1,19 @@
-﻿using Newtonsoft.Json;
+﻿using System.Text.Json;
 
 namespace Marlin.Core
 {
     public abstract class ApiHandler
     {
-        private static readonly JsonSerializerSettings Options = new() { StringEscapeHandling = StringEscapeHandling.Default };
+        private static readonly JsonSerializerOptions Options = new()
+            { AllowTrailingCommas = true, PropertyNameCaseInsensitive = true };
 
         private ApiOutput GetResult(int statusCode, object content, string contentType)
         {
-            return new ApiOutput() { ContentType = contentType, StatusCode = statusCode, Response = content != null ? JsonConvert.SerializeObject(content, Options) : string.Empty };
+            return new ApiOutput()
+            {
+                ContentType = contentType, StatusCode = statusCode,
+                Response = content != null ? JsonSerializer.Serialize(content, Options) : string.Empty
+            };
         }
 
         public ApiOutput Accepted(object content = null, string contentType = "application/json")

@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Security;
 using System.Text;
+using System.Text.Json;
 using Marlin.Core.Interfaces;
-using Newtonsoft.Json;
 
 namespace Marlin.Core
 {
@@ -77,8 +77,8 @@ namespace Marlin.Core
                 Claims = _claims
             };
 
-            var encodedHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_header)));
-            var encodedPayload = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(_payload)));
+            var encodedHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(_header)));
+            var encodedPayload = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(_payload)));
 
             try
             {
@@ -115,8 +115,8 @@ namespace Marlin.Core
             
             try
             {
-                var encodedHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(tokenMembers[0])));
-                var encodedPayload = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(tokenMembers[1])));
+                var encodedHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(tokenMembers[0])));
+                var encodedPayload = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(tokenMembers[1])));
 
                 var message = string.Join(".", encodedHeader , encodedPayload);
 
@@ -132,7 +132,7 @@ namespace Marlin.Core
                 throw new SecurityException(ex.Message);
             }
 
-            return JsonConvert.DeserializeObject<T>(tokenMembers[1]);
+            return JsonSerializer.Deserialize<T>(tokenMembers[1]);
         }
 
         public string GetTokenString()

@@ -3,7 +3,6 @@ using Marlin.Core.Common;
 using Marlin.Core.Entities;
 using Marlin.Core.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -13,6 +12,7 @@ using System.Net;
 using System.Reflection;
 using System.Security;
 using System.Text;
+using System.Text.Json;
 using Marlin.Core.Encrypt;
 
 namespace Marlin.Core
@@ -120,7 +120,7 @@ namespace Marlin.Core
                     statusCode = StatusCodes.Status500InternalServerError;
                     contentType = ContentType.ApplicationJson;
                     message = _configuration.PropagateApplicationError ? e.Message : Messages.GenericFailure;
-                    content = JsonConvert.SerializeObject(new { Message = message });
+                    content = JsonSerializer.Serialize(new { Message = message });
 
                     statusCode = e switch
                     {
@@ -264,7 +264,7 @@ namespace Marlin.Core
                 }
                 else if (parameters[i].GetCustomAttribute<ApiBody>() != null)
                 {
-                    value = JsonConvert.DeserializeObject(body, type);
+                    value = JsonSerializer.Deserialize(body, type);
 
                     args[i] = value ?? throw new ArgumentException(string.Format(Messages.EntityNotProvided, parameters[i].Name));
                 }
