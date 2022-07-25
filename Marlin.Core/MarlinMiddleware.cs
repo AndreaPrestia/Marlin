@@ -107,27 +107,24 @@ namespace Marlin.Core
 
                 var ms = timeKeeper.Stop().TotalMilliseconds;
 
-                if (_loggerHandler != null)
+                //logger service, write event
+                _loggerHandler?.WriteEvent(new Entities.Event()
                 {
-                    //logger service, write event
-                    _loggerHandler?.WriteEvent(new Entities.Event()
-                    {
-                        Level = string.IsNullOrEmpty(message)
-                            ? EventLevels.Info.ToString()
-                            : EventLevels.Error.ToString(),
-                        Claims = Context.Current.Claims,
-                        Protocol = context.Request.Protocol,
-                        Url = context.Request.Path,
-                        Method = context.Request.Method,
-                        Request = context.Request.QueryString.Value,
-                        Response = content,
-                        Host = context.Request.Host.Value,
-                        Client = context.Connection.RemoteIpAddress.ToString(),
-                        Payload = requestBody,
-                        Message = message,
-                        Milliseconds = ms
-                    });
-                }
+                    Level = string.IsNullOrEmpty(message)
+                        ? EventLevels.Info.ToString()
+                        : EventLevels.Error.ToString(),
+                    Claims = Context.Current.Claims,
+                    Protocol = context.Request.Protocol,
+                    Url = context.Request.Path,
+                    Method = context.Request.Method,
+                    Request = context.Request.QueryString.Value,
+                    Response = content,
+                    Host = context.Request.Host.Value,
+                    Client = context.Connection.RemoteIpAddress.ToString(),
+                    Payload = requestBody,
+                    Message = message,
+                    Milliseconds = ms
+                });
 
                 Console.WriteLine($"Request completed in {ms} ms");
 

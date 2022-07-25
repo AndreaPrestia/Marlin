@@ -11,11 +11,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b8606e6e-5de8-434a-934f-7f080614ee3f" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/Marlin.Core/Extensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/Extensions.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Marlin.Core/Marlin.Core.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/Marlin.Core.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Marlin.Core/MarlinMiddleware.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/MarlinMiddleware.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Marlin.Web/Marlin.Web.csproj" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Web/Marlin.Web.csproj" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Marlin.Web/Program.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Web/Program.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/.idea.Marlin/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Marlin/.idea/workspace.xml" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,6 +34,7 @@
   </component>
   <component name="HighlightingSettingsPerFile">
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/dd7bbb1eb6cb4178a82cd5136b2606b812978/_b9656/StatusCodes.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="mock://C:/Users/andre/source/repos/Marlin/Marlin.Core/Extensions.cs" root0="SKIP_HIGHLIGHTING" />
   </component>
   <component name="MarkdownSettingsMigration">
     <option name="stateVersion" value="1" />
@@ -148,6 +145,7 @@
       <workItem from="1658737233101" duration="414000" />
       <workItem from="1658737669286" duration="122000" />
       <workItem from="1658743942710" duration="2257000" />
+      <workItem from="1658751651590" duration="706000" />
     </task>
     <task id="LOCAL-00001" summary="Modified logic to work">
       <created>1656414269446</created>
@@ -191,7 +189,14 @@
       <option name="project" value="LOCAL" />
       <updated>1657536362885</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="fix">
+      <created>1658752453046</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1658752453046</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -227,6 +232,7 @@
     <MESSAGE value="Fix on Context.cs" />
     <MESSAGE value="Fix" />
     <MESSAGE value="Trying some new things" />
-    <option name="LAST_COMMIT_MESSAGE" value="Trying some new things" />
+    <MESSAGE value="fix" />
+    <option name="LAST_COMMIT_MESSAGE" value="fix" />
   </component>
 </project>
