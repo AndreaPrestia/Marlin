@@ -70,7 +70,7 @@ namespace Marlin.Core
 
         public MarlinBuilder UseHttps()
         {
-            if (!this.HasCert())
+            if (!HasCert())
             {
                 var certificate = this.GenerateCert();
 
@@ -119,7 +119,7 @@ namespace Marlin.Core
             store.Close();
         }
 
-        private bool HasCert()
+        private static bool HasCert()
         {
             var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
 

@@ -44,7 +44,7 @@ namespace Marlin.Core
         internal void Start()
         {
             _listener = new HttpListener();
-            _listener.Prefixes.Add($"https://*:{_configuration.Port}/");
+            _listener.Prefixes.Add($"https://localhost:{_configuration.Port}/");
             _listener.Start();
             Receive();
         }
@@ -61,14 +61,13 @@ namespace Marlin.Core
 
         private void ListenerCallback(IAsyncResult result)
         {
-            if (_listener.IsListening)
-            {
-                var context = _listener.EndGetContext(result);
+            if (!_listener.IsListening) return;
+            
+            var context = _listener.EndGetContext(result);
 
-                Next(context);
+            Next(context);
 
-                Receive();
-            }
+            Receive();
         }
 
         private void Next(HttpListenerContext context)
