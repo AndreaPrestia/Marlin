@@ -9,6 +9,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Reflection;
 using System.Security;
 using System.Text;
@@ -23,6 +24,7 @@ namespace Marlin.Core
         private readonly MarlinConfiguration _configuration;
         private readonly IEventHandler _eventHandler;
         private HttpListener _listener;
+        private TcpListener _tcpListener;
 
         public MarlinServer([NotNull] IServiceProvider serviceProvider)
         {
@@ -43,6 +45,9 @@ namespace Marlin.Core
 
         internal void Start()
         {
+            _tcpListener = new TcpListener(IPAddress.Loopback, 0);
+            _tcpListener.Start();
+            var port = ((IPEndPoint)_tcpListener.LocalEndpoint).Port;
             _listener = new HttpListener();
             _listener.Prefixes.Add($"https://localhost:{_configuration.Port}/");
             _listener.Start();

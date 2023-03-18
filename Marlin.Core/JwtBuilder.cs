@@ -9,7 +9,9 @@ namespace Marlin.Core
 {
     public class JwtBuilder
     {
-        private Dictionary<string, object> _claims;
+        private static readonly char[] Padding = { '=' };
+
+        private readonly Dictionary<string, object> _claims;
 
         private ICryptoAlghorithm _algorithm;
 
@@ -23,9 +25,18 @@ namespace Marlin.Core
 
         private string _token;
 
+        private static readonly JsonSerializerOptions Options = new JsonSerializerOptions()
+            { AllowTrailingCommas = true, PropertyNameCaseInsensitive = true };
+
         private JwtBuilder()
         {
-
+            _claims = new Dictionary<string, object>();
+            _signature = string.Empty;
+            _secret = string.Empty;
+            _header = null;
+            _payload = null;
+            _token = string.Empty;
+            _algorithm = null;
         }
 
         public static JwtBuilder Create()
@@ -49,8 +60,6 @@ namespace Marlin.Core
 
         public JwtBuilder AddClaim(string key, object value)
         {
-            _claims ??= new Dictionary<string, object>();
-
             if (!_claims.ContainsKey(key))
             {
                 _claims.Add(key, value);
@@ -63,13 +72,13 @@ namespace Marlin.Core
         {
             if (string.IsNullOrEmpty(_secret))
             {
-                throw new ArgumentNullException(Messages.TokenSecretNotProvided);
+                throw new ArgumentNullException($"Secret not provided");
             }
-            
+
             _header = new
             {
-                alg = _algorithm.GetType().Name,
-                typ = Messages.TokenFormat
+                alg = _algorithm?.AlgorithmName,
+                typ = "JWT"
             };
 
             _payload = new
@@ -77,12 +86,17 @@ namespace Marlin.Core
                 Claims = _claims
             };
 
-            var encodedHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(_header)));
-            var encodedPayload = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(_payload)));
+            var encodedHeader = EncodeBase64(_header);
+            var encodedPayload = EncodeBase64(_payload);
 
             try
             {
-                var message = string.Join(".", encodedHeader , encodedPayload);
+                var message = string.Join(".", encodedHeader, encodedPayload);
+
+                if (_algorithm == null)
+                {
+                    throw new ArgumentNullException(nameof(_algorithm));
+                }
 
                 _signature = _algorithm.GetSignature(message, _secret);
             }
@@ -90,7 +104,7 @@ namespace Marlin.Core
             {
                 _header = null;
                 _payload = null;
-                
+
                 throw new SecurityException(ex.Message);
             }
 
@@ -103,41 +117,74 @@ namespace Marlin.Core
         {
             if (string.IsNullOrEmpty(token))
             {
-                throw new SecurityException(Messages.TokenNotProvided);
+                throw new SecurityException("Token not provided");
             }
 
             var tokenMembers = token.Split('.');
 
             if (tokenMembers.Length != 3)
             {
-                throw new SecurityException(Messages.TokenInvalid);
+                throw new SecurityException("Invalid token");
             }
-            
+
             try
             {
-                var encodedHeader = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(tokenMembers[0])));
-                var encodedPayload = Convert.ToBase64String(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(tokenMembers[1])));
+                var encodedHeader = DecodeBase64(tokenMembers[0]);
+                var encodedPayload = DecodeBase64(tokenMembers[1]);
 
-                var message = string.Join(".", encodedHeader , encodedPayload);
+                var message = string.Join(".", encodedHeader, encodedPayload);
 
-                var signature = _algorithm.GetSignature(message, _secret);
+                var signature = _algorithm?.GetSignature(message, _secret);
 
-                if (!signature.Equals(tokenMembers[2]))
+                if (string.IsNullOrEmpty(signature))
                 {
-                    throw new SecurityException(Messages.TokenInvalidSignature);
+                    throw new ArgumentNullException(nameof(signature));
                 }
+
+                if (!signature.Equals(tokenMembers[2], StringComparison.Ordinal))
+                {
+                    throw new SecurityException("Invalid token signature");
+                }
+
+                return JsonSerializer.Deserialize<T>(
+                    Encoding.UTF8.GetString(Convert.FromBase64String(SetPadding(encodedPayload))), Options);
             }
             catch (Exception ex)
             {
                 throw new SecurityException(ex.Message);
             }
-
-            return JsonSerializer.Deserialize<T>(tokenMembers[1]);
         }
 
         public string GetTokenString()
         {
             return _token;
+        }
+
+        private static string DecodeBase64(string input)
+        {
+            return input
+                .Replace('_', '/').Replace('-', '+');
+        }
+
+        private static string SetPadding(string input)
+        {
+            switch (input.Length % 4)
+            {
+                case 2:
+                    input += "==";
+                    break;
+                case 3:
+                    input += "=";
+                    break;
+            }
+
+            return input;
+        }
+
+        private static string EncodeBase64(object content)
+        {
+            return Convert.ToBase64String(Encoding.Default.GetBytes(JsonSerializer.Serialize(content, Options)))
+                .TrimEnd(Padding).Replace('+', '-').Replace('/', '_');
         }
     }
 }

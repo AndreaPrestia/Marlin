@@ -12,7 +12,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b8606e6e-5de8-434a-934f-7f080614ee3f" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/Marlin.Core/SslTcpServer.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Marlin/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Marlin/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Marlin.Core/Encrypt/HMACSHA256.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/Encrypt/HMACSHA256.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Marlin.Core/Entities/MarlinConfiguration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/Entities/MarlinConfiguration.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Marlin.Core/Interfaces/ICryptoAlghorithm.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/Interfaces/ICryptoAlghorithm.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Marlin.Core/JwtBuilder.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/JwtBuilder.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Marlin.Core/MarlinBuilder.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/MarlinBuilder.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Marlin.Core/MarlinServer.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/MarlinServer.cs" afterDir="false" />
     </list>
@@ -36,8 +41,14 @@
     </option>
   </component>
   <component name="HighlightingSettingsPerFile">
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/43cc16b3296346bb464c8c72b5aad95f1acae8c4028c66eed56901e1fb559ff/Stream.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/85b6c63487d1d85eee77d7c073eb475d56b2476564ea3a2b465992c3ea12e46/SslStream.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/b46ae6ae1096ee66cfba388c2686f7f18eb5b09feb233b089c862f7e45a88/X509Certificate.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/bf56a1aba74be788aab1e5e26e73f3d2a48f6eaec71623cbfa7af94714f24/X509Certificate2.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/c70ff1bf8f9d4e16fa829da7f8d64e16f57ad8406148f58e6f33a9707468/AuthenticatedStream.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$APPLICATION_CONFIG_DIR$/resharper-host/SourcesCache/dd7bbb1eb6cb4178a82cd5136b2606b812978/_b9656/StatusCodes.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Marlin.Core/MarlinMiddleware.cs" root0="SKIP_HIGHLIGHTING" />
+    <setting file="file://$PROJECT_DIR$/Marlin.Core/Messages.cs" root0="FORCE_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Marlin.Web/Api/ExampleHandler.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Marlin.Web/Program.cs" root0="SKIP_HIGHLIGHTING" />
     <setting file="file://$PROJECT_DIR$/Marlin.Web/appsettings.Development.json" root0="SKIP_HIGHLIGHTING" />
@@ -171,7 +182,25 @@
       <workItem from="1658743942710" duration="2257000" />
       <workItem from="1658751651590" duration="706000" />
       <workItem from="1658754542873" duration="7172000" />
-      <workItem from="1658819581260" duration="2218000" />
+      <workItem from="1658819581260" duration="2583000" />
+      <workItem from="1658824662313" duration="1304000" />
+      <workItem from="1658922878373" duration="1872000" />
+      <workItem from="1658928863942" duration="1634000" />
+      <workItem from="1658930702793" duration="1248000" />
+      <workItem from="1659087613462" duration="15000" />
+      <workItem from="1659089268240" duration="312000" />
+      <workItem from="1661927564448" duration="5795000" />
+      <workItem from="1661941942144" duration="464000" />
+      <workItem from="1662715203786" duration="231000" />
+      <workItem from="1662994657925" duration="154000" />
+      <workItem from="1665833538811" duration="1181000" />
+      <workItem from="1667229029285" duration="130000" />
+      <workItem from="1667290705739" duration="336000" />
+      <workItem from="1668546590208" duration="13000" />
+      <workItem from="1668769691787" duration="9000" />
+      <workItem from="1668889623883" duration="67000" />
+      <workItem from="1668889710669" duration="68000" />
+      <workItem from="1668889868375" duration="19000" />
     </task>
     <task id="LOCAL-00001" summary="Modified logic to work">
       <created>1656414269446</created>
@@ -257,7 +286,14 @@
       <option name="project" value="LOCAL" />
       <updated>1658819655634</updated>
     </task>
-    <option name="localTasksCounter" value="13" />
+    <task id="LOCAL-00013" summary="Fix">
+      <created>1658823809910</created>
+      <option name="number" value="00013" />
+      <option name="presentableId" value="LOCAL-00013" />
+      <option name="project" value="LOCAL" />
+      <updated>1658823809910</updated>
+    </task>
+    <option name="localTasksCounter" value="14" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -293,41 +329,54 @@
     <MESSAGE value="Fix on Context.cs" />
     <MESSAGE value="Trying some new things" />
     <MESSAGE value="fix" />
-    <MESSAGE value="Fix" />
     <MESSAGE value="F" />
     <MESSAGE value="Fixed jwtbuilder integrated" />
     <MESSAGE value="Removed package reference" />
     <MESSAGE value="update" />
-    <option name="LAST_COMMIT_MESSAGE" value="update" />
+    <MESSAGE value="Fix" />
+    <option name="LAST_COMMIT_MESSAGE" value="Fix" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
-          <url>file://$PROJECT_DIR$/Marlin.Core/JwtBuilder.cs</url>
-          <line>36</line>
-          <properties documentPath="C:\Users\andre\source\repos\Marlin\Marlin.Core\JwtBuilder.cs" initialLine="36" containingFunctionPresentation="method 'WithAlgorithm'">
-            <startOffsets>
-              <option value="703" />
-            </startOffsets>
-            <endOffsets>
-              <option value="704" />
-            </endOffsets>
-          </properties>
-          <option name="timeStamp" value="1" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Marlin.Core/MarlinServer.cs</url>
-          <line>73</line>
+          <line>78</line>
           <properties documentPath="C:\Users\andre\source\repos\Marlin\Marlin.Core\MarlinServer.cs" initialLine="73" containingFunctionPresentation="method 'Next'">
             <startOffsets>
-              <option value="2110" />
+              <option value="2349" />
             </startOffsets>
             <endOffsets>
-              <option value="2111" />
+              <option value="2350" />
             </endOffsets>
           </properties>
           <option name="timeStamp" value="2" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Marlin.Core/MarlinServer.cs</url>
+          <line>46</line>
+          <properties documentPath="C:\Users\andre\source\repos\Marlin\Marlin.Core\MarlinServer.cs" initialLine="44" containingFunctionPresentation="method 'Start'">
+            <startOffsets>
+              <option value="1471" />
+            </startOffsets>
+            <endOffsets>
+              <option value="1472" />
+            </endOffsets>
+          </properties>
+          <option name="timeStamp" value="4" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="DotNet Breakpoints">
+          <url>file://$PROJECT_DIR$/Marlin.Core/MarlinServer.cs</url>
+          <line>84</line>
+          <properties documentPath="C:\Users\andre\source\repos\Marlin\Marlin.Core\MarlinServer.cs" initialLine="79" containingFunctionPresentation="method 'Next'">
+            <startOffsets>
+              <option value="2553" />
+            </startOffsets>
+            <endOffsets>
+              <option value="2630" />
+            </endOffsets>
+          </properties>
+          <option name="timeStamp" value="5" />
         </line-breakpoint>
         <line-breakpoint enabled="true" type="DotNet Breakpoints">
           <url>file://$PROJECT_DIR$/Marlin.Test/Program.cs</url>
@@ -340,7 +389,7 @@
               <option value="223" />
             </endOffsets>
           </properties>
-          <option name="timeStamp" value="3" />
+          <option name="timeStamp" value="7" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

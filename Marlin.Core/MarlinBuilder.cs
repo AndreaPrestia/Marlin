@@ -18,14 +18,14 @@ namespace Marlin.Core
 
         private MarlinBuilder()
         {
-            string environment = Environment.GetEnvironmentVariable("MARLIN_ENVIRONMENT");
+            var environment = Environment.GetEnvironmentVariable("MARLIN_ENVIRONMENT");
 
             var configBuilder = new ConfigurationBuilder().AddJsonFile(!string.IsNullOrEmpty(environment) ? $"appsettings.{environment}.json" : "appsettings.json");
             var configuration = configBuilder.Build();
 
             var marlinConfiguration = configuration.GetSection("Marlin").Get<MarlinConfiguration>();
 
-            if (marlinConfiguration == null || marlinConfiguration.JwtConfiguration == null)
+            if (marlinConfiguration?.JwtConfiguration == null)
             {
                 throw new ArgumentNullException(nameof(marlinConfiguration));
             }
@@ -105,7 +105,6 @@ namespace Marlin.Core
             request.CertificateExtensions.Add(sanBuilder.Build());
 
             var certificate = request.CreateSelfSigned(new DateTimeOffset(DateTime.UtcNow.AddDays(-1)), new DateTimeOffset(DateTime.UtcNow.AddDays(3650)));
-            certificate.FriendlyName = CertificateName;
 
             return new X509Certificate2(certificate.Export(X509ContentType.Pfx, SafePassword), SafePassword, X509KeyStorageFlags.MachineKeySet);
         }
