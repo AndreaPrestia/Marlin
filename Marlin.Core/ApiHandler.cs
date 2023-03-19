@@ -8,7 +8,7 @@ namespace Marlin.Core
         private static readonly JsonSerializerSettings Options = new()
             { StringEscapeHandling = StringEscapeHandling.Default };
 
-        private ApiOutput GetResult(int statusCode, object content, string contentType)
+        private static ApiOutput GetResult(int statusCode, object content, string contentType)
         {
             return new ApiOutput(content != null ? JsonConvert.SerializeObject(content, Options) : string.Empty,
                 statusCode, contentType);

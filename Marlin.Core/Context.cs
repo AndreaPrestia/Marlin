@@ -1,6 +1,5 @@
 ﻿using JWT.Algorithms;
 using JWT.Builder;
-using Marlin.Core.Entities;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;
@@ -13,24 +12,17 @@ namespace Marlin.Core
         [ThreadStatic]
         private static Context _context;
 
-        private readonly MarlinConfiguration _marlinConfiguration;
+        private readonly IConfiguration _configuration;
 
         private Context()
         {
-            string environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+            var environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
             var configBuilder = new ConfigurationBuilder().AddJsonFile(!string.IsNullOrEmpty(environment) ? $"appsettings.{environment}.json" : "appsettings.json");
-            var configuration = configBuilder.Build();
-
-            _marlinConfiguration = configuration.GetSection("Marlin").Get<MarlinConfiguration>();
-
-            if (_marlinConfiguration == null || _marlinConfiguration.JwtConfiguration == null)
-            {
-                throw new ArgumentNullException(nameof(_marlinConfiguration));
-            }
+            _configuration = configBuilder.Build();
         }
 
-        public Dictionary<string, object> Claims { get; private set; }
+        private Dictionary<string, object> Claims { get; set; }
 
         public static T GetClaim<T>(string name)
         {
@@ -73,7 +65,7 @@ namespace Marlin.Core
             }
         }
 
-        public static bool IsLoaded => _context != null && _context.Claims != null;
+        public static bool IsLoaded => _context is { Claims: { } };
 
         public static bool HasClaim(string name) => _context.Claims.ContainsKey(name.ToLowerInvariant().Trim());
 
@@ -93,10 +85,10 @@ namespace Marlin.Core
 
                 var tokenBuilder = JwtBuilder.Create()
                     .WithAlgorithm(new HMACSHA256Algorithm())
-                    .WithSecret(_marlinConfiguration.JwtConfiguration.JwtSecret)
-                    .AddClaim("exp", DateTimeOffset.UtcNow.AddHours(_marlinConfiguration.JwtConfiguration.JwtDurationHours).ToUnixTimeSeconds())
-                    .AddClaim("aud", _marlinConfiguration.JwtConfiguration.JwtAudience)
-                    .AddClaim("iss", _marlinConfiguration.JwtConfiguration.JwtIssuer)
+                    .WithSecret(_configuration["Jwt:Secret"])
+                    .AddClaim("exp", DateTimeOffset.UtcNow.AddMinutes(int.Parse(_configuration["Jwt:Minutes"])).ToUnixTimeSeconds())
+                    .AddClaim("aud", _configuration["Jwt:Audience"])
+                    .AddClaim("iss",  _configuration["Jwt:Issuer"])
                     .AddClaim("iat", DateTimeOffset.UtcNow.ToUnixTimeSeconds());
 
                 foreach (var claim in Current.Claims)

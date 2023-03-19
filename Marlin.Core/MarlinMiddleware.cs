@@ -2,7 +2,6 @@
 using JWT.Builder;
 using Marlin.Core.Attributes;
 using Marlin.Core.Common;
-using Marlin.Core.Entities;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
@@ -14,17 +13,20 @@ using System.Net;
 using System.Reflection;
 using System.Security;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace Marlin.Core
 {
-    public class MarlinMiddleware
+    public sealed class MarlinMiddleware
     {
-        private readonly MarlinConfiguration _configuration;
+        private readonly IConfiguration _configuration;
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<MarlinMiddleware> _logger;
+        private static readonly string
+            Environment = System.Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
-        public MarlinMiddleware(RequestDelegate next, MarlinConfiguration configuration,
+        public MarlinMiddleware(RequestDelegate next, IConfiguration configuration,
             IServiceProvider serviceProvider, ILogger<MarlinMiddleware> logger)
         {
             if (next == null)
@@ -33,11 +35,6 @@ namespace Marlin.Core
             }
             
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-
-            if (configuration.JwtConfiguration == null)
-            {
-                throw new ArgumentNullException(nameof(configuration.JwtConfiguration));
-            }
 
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
             _logger = logger;
@@ -70,7 +67,7 @@ namespace Marlin.Core
 
                 var requestBody = new StreamReader(context.Request.Body).ReadToEndAsync().Result;
 
-                var apiOutput = Process(new ApiInput(context), requestBody);
+                var apiOutput = Process(context, requestBody);
 
                 contentType = apiOutput.ContentType;
                 statusCode = apiOutput.StatusCode;
@@ -82,7 +79,7 @@ namespace Marlin.Core
 
                 statusCode = StatusCodes.Status500InternalServerError;
                 contentType = ContentType.ApplicationJson;
-                var message = _configuration.PropagateApplicationError ? e.Message : Messages.GenericFailure;
+                var message = Environment.Equals("Development", StringComparison.InvariantCultureIgnoreCase) ? e.Message : Messages.GenericFailure;
                 content = JsonConvert.SerializeObject(new { Message = message });
 
                 statusCode = e switch
@@ -112,63 +109,66 @@ namespace Marlin.Core
             }
         }
 
-        private ApiOutput Process(ApiInput input, string body)
+        private ApiOutput Process(HttpContext httpContext, string body)
         {
-            if (input == null)
+            if (httpContext == null)
             {
-                throw new ArgumentNullException(nameof(input));
+                throw new ArgumentNullException(nameof(httpContext));
             }
 
-
-            if (string.IsNullOrEmpty(input.Url))
+            var url = httpContext.Request.Path;
+            
+            if (string.IsNullOrEmpty(url))
             {
-                throw new ArgumentNullException(nameof(input.Url));
+                throw new ArgumentNullException(nameof(url));
             }
 
-            if (string.IsNullOrEmpty(input.Method))
+            var method = httpContext.Request.Method;
+            
+            if (string.IsNullOrEmpty(method))
             {
-                throw new ArgumentNullException(nameof(input.Method));
+                throw new ArgumentNullException(nameof(method));
             }
 
-            var apiHandlers = FindApiHandlers(input);
+            var apiHandlers = FindApiHandlers(url, method);
 
             if (apiHandlers == null || apiHandlers.Count == 0)
             {
-                throw new EntryPointNotFoundException(string.Format(Messages.ApiNotFound, input.Url, input.Method));
+                throw new EntryPointNotFoundException(string.Format(Messages.ApiNotFound, url, method));
             }
 
             if (apiHandlers.Count > 1)
             {
                 throw new HttpListenerException(StatusCodes.Status409Conflict,
-                    (string.Format(Messages.ApiConflict, input.Url, input.Method)));
+                    (string.Format(Messages.ApiConflict, url, method)));
             }
 
             var apiHandler = apiHandlers.FirstOrDefault();
 
             if (apiHandler == null)
             {
-                throw new EntryPointNotFoundException(string.Format(Messages.ApiNotFound, input.Url, input.Method));
+                throw new EntryPointNotFoundException(string.Format(Messages.ApiNotFound, url, method));
             }
 
             var api = apiHandler.GetType().GetMethods()
-                .Where(t => t.GetCustomAttributes<ApiRoute>().Any(x => x.Url == input.Url && x.Method == input.Method))
+                .Where(t => t.GetCustomAttributes<ApiRoute>().Any(x => x.Url == url && x.Method == method))
                 .Select(x => x).FirstOrDefault();
 
             if (api == null)
             {
-                throw new EntryPointNotFoundException(string.Format(Messages.ApiNotFound, input.Url, input.Method));
+                throw new EntryPointNotFoundException(string.Format(Messages.ApiNotFound, url, method));
             }
 
-            ManageSecuredAttributes(input, api);
+            ManageSecuredAttributes(url, method, httpContext, api);
 
-            var args = GetApiArguments(input, body, api);
+            var args = GetApiArguments(httpContext, body, api);
 
             var apiOutput = (ApiOutput)api.Invoke(apiHandler, args);
 
             return apiOutput;
         }
 
-        private static object[] GetApiArguments(ApiInput input, string body, MethodInfo api)
+        private static object[] GetApiArguments(HttpContext context, string body, MethodInfo api)
         {
             var parameters = api.GetParameters().Where(x =>
                 x.GetCustomAttribute<ApiParameter>() != null || x.GetCustomAttribute<ApiBody>() != null ||
@@ -194,7 +194,7 @@ namespace Marlin.Core
 
                 if (parameters[i].GetCustomAttribute<ApiParameter>() != null)
                 {
-                    value = input.Context.Request.Query[parameters[i].Name].FirstOrDefault();
+                    value = context.Request.Query[parameters[i].Name].FirstOrDefault();
 
                     if (value == null && !parameters[i].HasDefaultValue)
                     {
@@ -213,7 +213,7 @@ namespace Marlin.Core
                 }
                 else if (parameters[i].GetCustomAttribute<ApiHeader>() != null)
                 {
-                    value = input.Context.Request.Headers[parameters[i].Name].FirstOrDefault();
+                    value = context.Request.Headers[parameters[i].Name].FirstOrDefault();
 
                     if (value == null && !parameters[i].HasDefaultValue)
                     {
@@ -227,7 +227,7 @@ namespace Marlin.Core
             return args;
         }
 
-        private void ManageSecuredAttributes(ApiInput input, MethodInfo api)
+        private void ManageSecuredAttributes(string url, string method, HttpContext context, MethodInfo api)
         {
             var securedAttributes = api.GetCustomAttributes<Secured>().ToList();
 
@@ -238,7 +238,7 @@ namespace Marlin.Core
 
             if (Context.Current == null || !Context.IsLoaded)
             {
-                this.LoadContext(input.Context);
+                this.LoadContext(context);
             }
 
             if (Context.Current == null || !Context.IsLoaded)
@@ -250,8 +250,8 @@ namespace Marlin.Core
             {
                 if (!Context.HasClaim(secured.Claim))
                 {
-                    throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url,
-                        input.Method));
+                    throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, url,
+                        method));
                 }
 
                 if (secured.Claim.Equals("*"))
@@ -263,19 +263,19 @@ namespace Marlin.Core
 
                 if (string.IsNullOrEmpty(claimContent) || !secured.Value.Contains(claimContent))
                 {
-                    throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, input.Url,
-                        input.Method));
+                    throw new UnauthorizedAccessException(string.Format(Messages.ApiNotAuthorizedClaim, url,
+                        method));
                 }
             }
         }
 
-        private List<ApiHandler> FindApiHandlers(ApiInput input)
+        private List<ApiHandler> FindApiHandlers(string url, string method)
         {
             return AppDomain.CurrentDomain.GetAssemblies()
                 .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
                     t.IsSubclassOf(typeof(ApiHandler))
                     && !t.IsAbstract && !t.IsInterface).Where(tp => tp.GetMethods().Any(n =>
-                    n.GetCustomAttributes<ApiRoute>().Any(x => x.Url == input.Url && x.Method == input.Method)))
+                    n.GetCustomAttributes<ApiRoute>().Any(x => x.Url == url && x.Method == method)))
                 .Select(t =>
                 {
                     var firstConstructor = t.GetConstructors().FirstOrDefault();
@@ -322,7 +322,7 @@ namespace Marlin.Core
 
             var jwtContent = JwtBuilder.Create()
                 .WithAlgorithm(new HMACSHA256Algorithm())
-                .WithSecret(_configuration.JwtConfiguration.JwtSecret)
+                .WithSecret(_configuration["Jwt:Secret"])
                 .MustVerifySignature()
                 .WithVerifySignature(true)
                 .Decode<Dictionary<string, object>>(tokenString);
@@ -358,7 +358,7 @@ namespace Marlin.Core
 
             var hasIssuer = jwtContent.TryGetValue("iss", out object issuer);
 
-            if (!hasIssuer && (issuer == null || !issuer.ToString().Equals(_configuration.JwtConfiguration.JwtIssuer)))
+            if (!hasIssuer && (issuer == null || !issuer.ToString().Equals(_configuration["Jwt:Issuer"])))
             {
                 throw new SecurityException(Messages.TokenInvalidIss);
             }
@@ -366,7 +366,7 @@ namespace Marlin.Core
             var hasAudience = jwtContent.TryGetValue("aud", out object audience);
 
             if (!hasAudience && (audience == null ||
-                                 !audience.ToString().Equals(_configuration.JwtConfiguration.JwtAudience)))
+                                 !audience.ToString().Equals(_configuration["Jwt:Audience"])))
             {
                 throw new SecurityException(Messages.TokenInvalidAud);
             }
