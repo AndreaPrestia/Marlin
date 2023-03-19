@@ -13,19 +13,11 @@
   <component name="ChangeListManager">
     <list default="true" id="b8606e6e-5de8-434a-934f-7f080614ee3f" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/.idea.Marlin/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/.idea.Marlin/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Marlin.Core/ApiHandler.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/ApiHandler.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Marlin.Core/ApiInput.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/ApiInput.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Marlin.Core/ApiOutput.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/ApiOutput.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Marlin.Core/Attributes/ApiBody.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/Attributes/ApiBody.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Marlin.Core/Attributes/ApiHeader.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/Attributes/ApiHeader.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Marlin.Core/Attributes/ApiRoute.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/Attributes/ApiRoute.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Marlin.Core/Attributes/Secured.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/Attributes/Secured.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Marlin.Core/Common/TimeKeeper.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/Common/TimeKeeper.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Marlin.Core/Context.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/Context.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Marlin.Core/Entities/Event.cs" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Marlin.Core/Entities/MarlinConfiguration.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/Entities/MarlinConfiguration.cs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Marlin.Core/Extensions.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/Extensions.cs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Marlin.Core/Interfaces/IEventHandler.cs" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Marlin.Core/MarlinMiddleware.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/MarlinMiddleware.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Marlin.Core/Messages.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Core/Messages.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Marlin.Web/Api/ExampleHandler.cs" beforeDir="false" afterPath="$PROJECT_DIR$/Marlin.Web/Api/ExampleHandler.cs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -171,7 +163,8 @@
       <workItem from="1658743942710" duration="2257000" />
       <workItem from="1658751651590" duration="706000" />
       <workItem from="1658754542873" duration="652000" />
-      <workItem from="1679225967252" duration="871000" />
+      <workItem from="1679225967252" duration="914000" />
+      <workItem from="1679237495338" duration="1325000" />
     </task>
     <task id="LOCAL-00001" summary="Modified logic to work">
       <created>1656414269446</created>
@@ -229,7 +222,14 @@
       <option name="project" value="LOCAL" />
       <updated>1658755787905</updated>
     </task>
-    <option name="localTasksCounter" value="9" />
+    <task id="LOCAL-00009" summary="Refactoring with ReSharper">
+      <created>1679226873817</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1679226873817</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -266,6 +266,7 @@
     <MESSAGE value="Trying some new things" />
     <MESSAGE value="fix" />
     <MESSAGE value="Fix" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fix" />
+    <MESSAGE value="Refactoring with ReSharper" />
+    <option name="LAST_COMMIT_MESSAGE" value="Refactoring with ReSharper" />
   </component>
 </project>

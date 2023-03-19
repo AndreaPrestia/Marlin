@@ -3,7 +3,6 @@ using JWT.Builder;
 using Marlin.Core.Attributes;
 using Marlin.Core.Common;
 using Marlin.Core.Entities;
-using Marlin.Core.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
@@ -15,6 +14,7 @@ using System.Net;
 using System.Reflection;
 using System.Security;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 namespace Marlin.Core
 {
@@ -22,18 +22,16 @@ namespace Marlin.Core
     {
         private readonly MarlinConfiguration _configuration;
         private readonly IServiceProvider _serviceProvider;
-        private readonly IEventHandler _loggerHandler;
+        private readonly ILogger<MarlinMiddleware> _logger;
 
         public MarlinMiddleware(RequestDelegate next, MarlinConfiguration configuration,
-            IServiceProvider serviceProvider)
+            IServiceProvider serviceProvider, ILogger<MarlinMiddleware> logger)
         {
             if (next == null)
             {
                 throw new ArgumentNullException(nameof(next));   
             }
             
-            Console.WriteLine(next.Target);
-
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
             if (configuration.JwtConfiguration == null)
@@ -42,24 +40,18 @@ namespace Marlin.Core
             }
 
             _serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-
-            if (_configuration.EventLoggerEnabled)
-            {
-                _loggerHandler = serviceProvider.GetService<IEventHandler>();
-            }
+            _logger = logger;
         }
 
         public async Task Invoke(HttpContext context)
         {
             string content = null;
-            string message = null;
-            string requestBody = null;
             var contentType = ContentType.TextPlain;
             var statusCode = StatusCodes.Status200OK;
 
             var timeKeeper = new TimeKeeper();
 
-            Console.WriteLine($"Request started at {DateTime.UtcNow}");
+            _logger.LogInformation($"Request started at {DateTime.UtcNow}");
 
             try
             {
@@ -76,7 +68,7 @@ namespace Marlin.Core
                         context.Request.ContentType, contentType));
                 }
 
-                requestBody = new StreamReader(context.Request.Body).ReadToEndAsync().Result;
+                var requestBody = new StreamReader(context.Request.Body).ReadToEndAsync().Result;
 
                 var apiOutput = Process(new ApiInput(context), requestBody);
 
@@ -86,11 +78,11 @@ namespace Marlin.Core
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
+                _logger.LogError(e.Message, e);
 
                 statusCode = StatusCodes.Status500InternalServerError;
                 contentType = ContentType.ApplicationJson;
-                message = _configuration.PropagateApplicationError ? e.Message : Messages.GenericFailure;
+                var message = _configuration.PropagateApplicationError ? e.Message : Messages.GenericFailure;
                 content = JsonConvert.SerializeObject(new { Message = message });
 
                 statusCode = e switch
@@ -105,32 +97,13 @@ namespace Marlin.Core
             }
             finally
             {
-                Console.WriteLine($"ContentType: {contentType}");
-                Console.WriteLine($"Content: {content}");
-                Console.WriteLine($"statusCode: {statusCode}");
+                _logger.LogDebug($"ContentType: {contentType}");
+                _logger.LogDebug($"Content: {content}");
+                _logger.LogDebug($"statusCode: {statusCode}");
 
                 var ms = timeKeeper.Stop().TotalMilliseconds;
 
-                //logger service, write event
-                _loggerHandler?.WriteEvent(new Event()
-                {
-                    Level = string.IsNullOrEmpty(message)
-                        ? EventLevels.Info.ToString()
-                        : EventLevels.Error.ToString(),
-                    Claims = Context.Current.Claims,
-                    Protocol = context.Request.Protocol,
-                    Url = context.Request.Path,
-                    Method = context.Request.Method,
-                    Request = context.Request.QueryString.Value,
-                    Response = content,
-                    Host = context.Request.Host.Value,
-                    Client = context.Connection.RemoteIpAddress.ToString(),
-                    Payload = requestBody,
-                    Message = message,
-                    Milliseconds = ms
-                });
-
-                Console.WriteLine($"Request completed in {ms} ms");
+                _logger.LogInformation($"Request completed in {ms} ms");
 
                 context.Response.ContentType = contentType;
                 context.Response.StatusCode = statusCode;
@@ -157,7 +130,7 @@ namespace Marlin.Core
                 throw new ArgumentNullException(nameof(input.Method));
             }
 
-            List<ApiHandler> apiHandlers = FindApiHandlers(input);
+            var apiHandlers = FindApiHandlers(input);
 
             if (apiHandlers == null || apiHandlers.Count == 0)
             {
@@ -188,7 +161,7 @@ namespace Marlin.Core
 
             ManageSecuredAttributes(input, api);
 
-            object[] args = GetApiArguments(input, body, api);
+            var args = GetApiArguments(input, body, api);
 
             var apiOutput = (ApiOutput)api.Invoke(apiHandler, args);
 
@@ -328,7 +301,7 @@ namespace Marlin.Core
                 }).ToList();
         }
 
-        private void SetContext(Dictionary<string, object> claims)
+        private static void SetContext(Dictionary<string, object> claims)
         {
             foreach (var claim in claims)
             {
@@ -340,7 +313,7 @@ namespace Marlin.Core
         {
             var tokenString = context.Request.Headers[Messages.HeaderAuthorization].FirstOrDefault();
 
-            Console.WriteLine($"Token received: {tokenString}");
+            _logger.LogDebug($"Token received: {tokenString}");
 
             if (string.IsNullOrEmpty(tokenString))
             {

@@ -1,5 +1,4 @@
 ﻿using Marlin.Core.Entities;
-using Marlin.Core.Interfaces;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.CookiePolicy;
 using Microsoft.AspNetCore.Http;
@@ -30,11 +29,6 @@ namespace Marlin.Core
             }
 
             services.AddSingleton(marlinConfiguration);
-
-            if (marlinConfiguration.EventLoggerEnabled)
-            {
-                services.AddSingleton<IEventHandler>();
-            }
 
             services.AddCors();
 
