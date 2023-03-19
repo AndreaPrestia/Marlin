@@ -40,7 +40,7 @@ namespace Marlin.Core
 
             services.Configure<CookiePolicyOptions>(options =>
             {
-                options.CheckConsentNeeded = context => false;
+                options.CheckConsentNeeded = _ => false;
                 options.MinimumSameSitePolicy = SameSiteMode.None;
                 options.Secure = CookieSecurePolicy.None;
                 options.HttpOnly = HttpOnlyPolicy.None;

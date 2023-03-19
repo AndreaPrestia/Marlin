@@ -1,7 +1,6 @@
 ﻿using JWT.Algorithms;
 using JWT.Builder;
 using Marlin.Core.Entities;
-using Marlin.Core.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System;
 using System.Collections.Generic;

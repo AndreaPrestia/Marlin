@@ -8,7 +8,7 @@ namespace Marlin.Web.Api
         [ApiRoute("/free", "GET")]
         public ApiOutput Free()
         {
-            return Ok("I'm freeeee");
+            return Ok("I'm free!");
         }
 
         [ApiRoute("/token", "GET")]

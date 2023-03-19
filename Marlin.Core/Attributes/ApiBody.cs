@@ -2,7 +2,7 @@
 
 namespace Marlin.Core.Attributes
 {
-    public sealed class ApiBody : Attribute
+    public abstract class ApiBody : Attribute
     {
     }
 }

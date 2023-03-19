@@ -1,6 +1,6 @@
 ﻿namespace Marlin.Core
 {
-    internal class Messages
+    internal static class Messages
     {
         internal const string GenericFailure = "An error has occurred :(";
         internal const string NotImplementedConstructor = "'{0}' has no implemented constructor";

@@ -4,7 +4,7 @@ namespace Marlin.Core.Common
 {
     class TimeKeeper
     {
-        private readonly DateTime _start = DateTime.MinValue;
+        private readonly DateTime _start;
         private DateTime _end = DateTime.MinValue;
 
         internal TimeKeeper()

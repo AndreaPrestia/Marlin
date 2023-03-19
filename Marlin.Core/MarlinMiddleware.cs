@@ -21,14 +21,18 @@ namespace Marlin.Core
     public class MarlinMiddleware
     {
         private readonly MarlinConfiguration _configuration;
-        private readonly RequestDelegate _next;
         private readonly IServiceProvider _serviceProvider;
         private readonly IEventHandler _loggerHandler;
 
         public MarlinMiddleware(RequestDelegate next, MarlinConfiguration configuration,
             IServiceProvider serviceProvider)
         {
-            _next = next ?? throw new ArgumentNullException(nameof(next));
+            if (next == null)
+            {
+                throw new ArgumentNullException(nameof(next));   
+            }
+            
+            Console.WriteLine(next.Target);
 
             _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
@@ -108,7 +112,7 @@ namespace Marlin.Core
                 var ms = timeKeeper.Stop().TotalMilliseconds;
 
                 //logger service, write event
-                _loggerHandler?.WriteEvent(new Entities.Event()
+                _loggerHandler?.WriteEvent(new Event()
                 {
                     Level = string.IsNullOrEmpty(message)
                         ? EventLevels.Info.ToString()
@@ -294,8 +298,6 @@ namespace Marlin.Core
 
         private List<ApiHandler> FindApiHandlers(ApiInput input)
         {
-            var friendlyName = AppDomain.CurrentDomain.FriendlyName;
-
             return AppDomain.CurrentDomain.GetAssemblies()
                 .First(x => x.GetName().Name == AppDomain.CurrentDomain.FriendlyName).GetTypes().Where(t =>
                     t.IsSubclassOf(typeof(ApiHandler))
@@ -326,7 +328,7 @@ namespace Marlin.Core
                 }).ToList();
         }
 
-        public void SetContext(Dictionary<string, object> claims)
+        private void SetContext(Dictionary<string, object> claims)
         {
             foreach (var claim in claims)
             {

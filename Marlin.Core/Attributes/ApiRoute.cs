@@ -4,16 +4,13 @@ namespace Marlin.Core.Attributes
 {
     public sealed class ApiRoute : Attribute
     {
-        private string _url;
-        private string _method;
-
         public ApiRoute(string url, string method)
         {
-            _url = url;
-            _method = method;
+            Url = url;
+            Method = method;
         }
 
-        public string Url { get => _url; }
-        public string Method { get => _method; }
+        public string Url { get; }
+        public string Method { get; }
     }
 }

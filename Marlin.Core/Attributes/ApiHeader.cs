@@ -2,7 +2,7 @@
 
 namespace Marlin.Core.Attributes
 {
-    public class ApiHeader : Attribute
+    public abstract class ApiHeader : Attribute
     {
     }
 }

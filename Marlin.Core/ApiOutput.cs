@@ -11,8 +11,8 @@ namespace Marlin.Core
             ContentType = contentType;
         }
 
-        public string Response { get; set; }
-        public int StatusCode { get; set; }
-        public string ContentType { get; set; }
+        public string Response { get; }
+        public int StatusCode { get; }
+        public string ContentType { get; }
     }
 }

@@ -2,12 +2,12 @@
 
 namespace Marlin.Core
 {
-    public class ApiInput 
+    internal class ApiInput 
     {
-        public string Url => Context.Request?.Path;
-        public string Method => Context.Request?.Method;
-        public HttpContext Context { get; }
-        public ApiInput(HttpContext context)
+        internal string Url => Context.Request?.Path;
+        internal string Method => Context.Request?.Method;
+        internal HttpContext Context { get; }
+        internal ApiInput(HttpContext context)
         {
             Context = context;
         }
