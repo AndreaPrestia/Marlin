@@ -60,6 +60,7 @@ public sealed class SslTcpServer
         // Create a TCP/IP (IPv4) socket and listen for incoming connections.
         var listener = new TcpListener(IPAddress.Any, 8080);
         listener.Start();
+
         while (true)
         {
             Console.WriteLine("Waiting for a client to connect...");

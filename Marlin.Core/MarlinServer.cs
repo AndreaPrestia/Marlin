@@ -14,6 +14,7 @@ using System.Reflection;
 using System.Security;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Tasks;
 using Marlin.Core.Encrypt;
 
 namespace Marlin.Core
@@ -47,6 +48,12 @@ namespace Marlin.Core
         {
             _tcpListener = new TcpListener(IPAddress.Loopback, 0);
             _tcpListener.Start();
+            //Wait for clients
+            var client = _tcpListener.AcceptTcpClient();
+
+            //Get client stream
+            var stream = client.GetStream();
+
             var port = ((IPEndPoint)_tcpListener.LocalEndpoint).Port;
             _listener = new HttpListener();
             _listener.Prefixes.Add($"https://localhost:{_configuration.Port}/");
@@ -69,7 +76,7 @@ namespace Marlin.Core
             if (!_listener.IsListening) return;
             
             var context = _listener.EndGetContext(result);
-
+            
             Next(context);
 
             Receive();
@@ -84,7 +91,7 @@ namespace Marlin.Core
 
             if (context.Request.Url != null && context.Request.Url.LocalPath.Equals("/"))
             {
-                buffer = Encoding.UTF8.GetBytes("Server is up and running :)");
+                buffer = "Server is up and running :)"u8.ToArray();
 
                 context.Response.ContentType = contentType;
                 context.Response.StatusCode = statusCode;

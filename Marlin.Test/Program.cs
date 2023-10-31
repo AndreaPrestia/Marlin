@@ -19,7 +19,7 @@ namespace Marlin.Test
                     _keepRunning = false;
                 };
 
-                marlinBuilder = MarlinBuilder.Init().StartListen().Build();
+                marlinBuilder = MarlinBuilder.Init().StartListen().UseHttps().Build();
 
                 while (_keepRunning) { }
 
